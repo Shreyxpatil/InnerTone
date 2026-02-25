@@ -23,6 +23,10 @@ def create_app() -> FastAPI:
 
     # Routers
     app.include_router(chat_router, prefix="/api/v1")
+    from innertone.api.v1.calls import router as calls_router
+    app.include_router(calls_router, prefix="/api/v1")
+    from innertone.api.v1.booking import router as booking_router
+    app.include_router(booking_router, prefix="/api/v1")
 
     @app.get("/health", tags=["Health"])
     async def health():

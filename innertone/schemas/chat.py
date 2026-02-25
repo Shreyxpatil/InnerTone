@@ -19,3 +19,5 @@ class ChatResponse(BaseModel):
     response: str
     is_crisis: bool
     sources: list[SourceReference] = []
+    emotions: list[str] = []
+    emotion_intensity: str = "medium"
