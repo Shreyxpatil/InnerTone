@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from innertone.core.database import get_db
 from innertone.schemas.chat import ChatRequest, ChatResponse
 from innertone.services.consultant import get_consultant_response
+from google.genai.errors import APIError, ClientError
 from innertone.services.memory import get_history, save_message
 from innertone.services.emotion import detect_emotion
 from innertone.models.emotion import EmotionRecord
@@ -37,11 +38,23 @@ async def send_message(
     )
 
     # 3. Get response from consultant engine
-    result = await get_consultant_response(
-        user_message=request.message,
-        conversation_history=history,
-        db=db,
-    )
+    try:
+        result = await get_consultant_response(
+            user_message=request.message,
+            conversation_history=history,
+            db=db,
+        )
+    except (APIError, ClientError) as api_err:
+        return ChatResponse(
+            session_id=request.session_id,
+            response=f"I'm sorry, our AI service is currently unavailable. Please check your API key or try again later.",
+            is_crisis=False,
+            sources=[],
+            emotions=[],
+            emotion_intensity="low"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     # 4. Persist conversation messages
     await save_message(request.session_id, "user", request.message, db, is_crisis=result["is_crisis"])

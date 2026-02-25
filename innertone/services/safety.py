@@ -8,7 +8,8 @@ import re
 
 # Keywords and patterns indicating a crisis
 CRISIS_PATTERNS = [
-    r"\bsuicid(e|al|ally)\b",
+    r"suicid(e|al|ally)?",
+    r"sucid(e|al)?",
     r"\bkill myself\b",
     r"\bend (my|this) life\b",
     r"\bwant to die\b",

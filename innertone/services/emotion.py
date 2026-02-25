@@ -94,18 +94,32 @@ async def detect_emotion(user_message: str) -> dict:
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             prompt = _GEMINI_CLASSIFICATION_PROMPT.format(message=user_message[:500])
             
-            response = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=[types.Content(role="user", parts=[types.Part(text=prompt)])],
-                config=types.GenerateContentConfig(
-                    temperature=0.1,  # Low temperature for consistent classification
-                    max_output_tokens=100,
-                )
-            )
+            fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.0-flash-lite"]
+            response_text = None
+            last_error = None
             
+            for model_name in fallback_models:
+                try:
+                    response = client.models.generate_content(
+                        model=model_name,
+                        contents=[types.Content(role="user", parts=[types.Part(text=prompt)])],
+                        config=types.GenerateContentConfig(
+                            temperature=0.1,
+                            max_output_tokens=100,
+                        )
+                    )
+                    response_text = response.text
+                    break
+                except Exception as e:
+                    last_error = e
+                    continue
+            
+            if not response_text:
+                raise last_error
+
             import json
             # Strip markdown code fences if present
-            raw = response.text.strip().strip("```json").strip("```").strip()
+            raw = response_text.strip().strip("```json").strip("```").strip()
             result = json.loads(raw)
             
             return {

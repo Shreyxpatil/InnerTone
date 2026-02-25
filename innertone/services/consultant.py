@@ -94,17 +94,35 @@ async def get_consultant_response(
     # Append the current user message
     contents.append(types.Content(role="user", parts=[types.Part(text=full_user_message)]))
 
-    response = client.models.generate_content(
-        model="gemini-2.0-flash",
-        contents=contents,
-        config=types.GenerateContentConfig(
-            system_instruction=CBT_SYSTEM_PROMPT,
-            temperature=0.7,
-            max_output_tokens=600,
-        ),
-    )
+    fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.0-flash-lite"]
+    response_text = None
+    last_error = None
 
-    response_text = response.text
+    for model_name in fallback_models:
+        try:
+            response = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    system_instruction=CBT_SYSTEM_PROMPT,
+                    temperature=0.7,
+                    max_output_tokens=600,
+                    safety_settings=[
+                        types.SafetySetting(category="HARM_CATEGORY_DANGEROUS_CONTENT", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_HARASSMENT", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_HATE_SPEECH", threshold="BLOCK_NONE"),
+                        types.SafetySetting(category="HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold="BLOCK_NONE"),
+                    ]
+                ),
+            )
+            response_text = response.text
+            break
+        except Exception as e:
+            last_error = e
+            continue
+
+    if not response_text:
+        raise last_error
 
     # --- Step 5: Return structured result ---
     sources = [
