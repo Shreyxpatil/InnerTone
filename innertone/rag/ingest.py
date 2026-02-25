@@ -104,7 +104,9 @@ async def process_books():
             
             # Add to FAISS index — must be numpy float32
             import numpy as np
-            index.add(np.array(embeddings, dtype="float32"))
+            emb_arr = np.array(embeddings, dtype="float32")
+            print(f"Adding batch of {emb_arr.shape[0]} embeddings with dimension {emb_arr.shape[1]} to FAISS index with dimension {index.d}")
+            index.add(emb_arr)
             
             # Save metadata to database
             for i, chunk in enumerate(chunks):
