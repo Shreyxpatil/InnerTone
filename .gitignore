@@ -16,8 +16,16 @@ env/
 # Environment secrets — NEVER commit these
 .env
 
-# FAISS index (large binary)
+# FAISS index and local data
 *.faiss
+Books/
+innertone_index.faiss
+test_safety.out
+test_rag.py
+test_fallback.py
+check_db.py
+test_consultant.py
+server.log
 
 # IDE
 .idea/
