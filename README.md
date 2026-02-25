@@ -1,119 +1,95 @@
+# 🧠 InnerTone — AI Mental-Wellness Consultation Platform
+
 <div align="center">
 
-# 🧠 InnerTone
+![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green?logo=fastapi)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)
+![Gemini](https://img.shields.io/badge/Google%20Gemini-AI-orange?logo=google)
+![FAISS](https://img.shields.io/badge/FAISS-Vector%20Search-yellow)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
-### AI Mental Wellness Consultation Platform
-
-**Built with FastAPI · PostgreSQL · FAISS · Google Gemini**
-
-[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
-[![Gemini](https://img.shields.io/badge/Gemini-API-orange.svg)](https://ai.google.dev)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/Status-Active%20Development-brightgreen.svg)]()
-
-> *InnerTone — because your mind deserves a thoughtful listener.*
+**A production-grade, AI-powered mental wellness platform — built with empathy and engineering rigor.**
 
 </div>
 
 ---
 
-## 🌟 What is InnerTone?
+## ✨ What is InnerTone?
 
-**InnerTone** is a production-grade AI mental-wellness consultation platform that combines state-of-the-art language models with evidence-based psychology knowledge (CBT, mindfulness, emotional intelligence) to deliver empathetic, intelligent, and safe mental health support.
+InnerTone is an AI-powered mental wellness consultation platform that provides:
 
-It is **NOT** a medical application. It is a supportive, AI-powered companion grounded in psychology research.
+- 💬 **Chat Support** — CBT-style conversational AI therapy
+- 🎙️ **Voice Call Support** — Real-time voice AI sessions
+- 📹 **Video Call Support** — Face-to-face video consultations
+- 😊 **Emotion Detection** — Real-time user emotion recognition
+- 📚 **RAG Knowledge Base** — Retrieved insights from top psychology/CBT books
+- 🧠 **Memory System** — Long-term, personalized user memory
+- 🚨 **Safety Detection** — Automatic crisis & suicidal ideation detection
+- 📅 **Appointment Booking** — Schedule consultations
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ System Architecture
 
 ```
-Client (Web/Mobile)
-        │
-        ▼
- ┌──────────────────────────────────────────────┐
- │         FastAPI Backend (Async)               │
- │  ┌──────────┐  ┌───────────┐  ┌───────────┐  │
- │  │  Chat    │  │  Booking  │  │Voice/Video│  │
- │  │ Service  │  │  Service  │  │ Signaling │  │
- │  └────┬─────┘  └─────┬─────┘  └─────┬─────┘  │
- │       │              │              │          │
- │  ┌────▼─────────────────────────────▼─────┐   │
- │  │    LLM Consultant Engine (Gemini)       │   │
- │  │   ┌──────────┐    ┌─────────────────┐  │   │
- │  │   │   RAG    │    │ Memory System   │  │   │
- │  │   │ Pipeline │    │ (Long-term ctx) │  │   │
- │  │   └──────────┘    └─────────────────┘  │   │
- │  ├──────────────────────────────────────◄─┤   │
- │  │ Safety Detector │ Emotion Classifier   │   │
- │  └────────────────────────────────────────┘   │
- └──────────────────────────────────────────────┘
-        │                         │
-   ┌────▼────┐              ┌─────▼────┐
-   │Postgres │              │  FAISS   │
-   │(Primary)│              │(Vectors) │
-   └─────────┘              └──────────┘
+Client Apps
+    │
+    ▼
+FastAPI Gateway (REST + WebSocket)
+    │
+    ├── Chat & Context Service
+    │       ├── Safety Module  ←── Intercepts crisis signals
+    │       ├── Emotion Detection
+    │       └── LLM Consultant Engine (Gemini)
+    │               ├── RAG Retrieval (FAISS + Psychology Books)
+    │               └── Long-term Memory (PostgreSQL)
+    │
+    ├── Voice / Video Call Signaling (WebRTC)
+    └── Appointment Booking (PostgreSQL)
 ```
 
 ---
 
-## ✨ Core Features
-
-| Feature | Description | Status |
-|---|---|---|
-| 🤖 **AI Consultant Engine** | CBT-style empathetic responses via Gemini | 🔄 In Progress |
-| 📚 **RAG Knowledge Base** | Psychology books → FAISS vector search | ✅ Phase 1 Active |
-| 🛡️ **Safety Detection** | Crisis/self-harm trigger detection + emergency escalation | 🔜 Planned |
-| 😔 **Emotion Detection** | Real-time emotional state classification | 🔜 Planned |
-| 💬 **Chat System** | Full async chat with memory | 🔜 Planned |
-| 🧠 **Memory System** | Long-term user context & summarization | 🔜 Planned |
-| 🎙️ **Voice Calls** | Realtime voice consultation | 🔜 Planned |
-| 📹 **Video Calls** | WebRTC-powered video sessions | 🔜 Planned |
-| 📅 **Appointment Booking** | Schedule sessions with human therapists | 🔜 Planned |
-
----
-
-## 📚 Psychology Knowledge Base
-
-InnerTone's RAG pipeline is powered by **11 curated psychology & wellness books**:
-
-- 📗 *Cognitive Behavioral Therapy: Basics and Beyond* — Judith Beck
-- 📘 *Feeling Good* — David D. Burns
-- 📙 *The Anxiety and Phobia Workbook* — Edmund Bourne
-- 📕 *Dare: The New Way to End Anxiety* — Barry McDonagh
-- 📗 *Emotional Intelligence* — Daniel Goleman
-- 📘 *Self-Compassion: The Proven Power* — Kristin Neff
-- 📙 *The Happiness Trap* — Russ Harris
-- 📕 *Why Zebras Don't Get Ulcers* — Robert M. Sapolsky
-- 📗 *Burnout: The Secret to Unlocking the Stress Cycle* — Emily & Amelia Nagoski
-- 📘 *The Relaxation and Stress Reduction Workbook*
-- 📙 *Atomic Habits* — James Clear
-
----
-
-## 🛠️ Tech Stack
+## 🚀 Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Backend** | FastAPI (Python 3.10+, Async) |
-| **LLM** | Google Gemini API |
-| **Embeddings** | Google Gemini Embedding (`gemini-embedding-001`) |
-| **Vector Store** | FAISS (local, high-performance) |
-| **Primary DB** | PostgreSQL (via SQLAlchemy + asyncpg) |
-| **ORM** | SQLAlchemy 2.0 (async) |
-| **PDF Processing** | LangChain + PyPDF |
-| **Text Splitting** | Recursive Character Text Splitter (2000 chars, 200 overlap) |
+| Backend API | FastAPI (async) |
+| Language | Python 3.10+ |
+| Primary DB | PostgreSQL |
+| Vector Search | FAISS (local) |
+| LLM + Embeddings | Google Gemini API |
+| PDF Parsing | LangChain + PyPDF |
+| Embeddings | `models/gemini-embedding-001` |
 
 ---
 
-## 🚀 Getting Started
+## 📁 Project Structure
 
-### Prerequisites
+```
+InnerTone/
+├── Books/                          # Psychology/CBT PDF books (local RAG source)
+├── innertone/
+│   ├── core/
+│   │   ├── config.py               # Pydantic settings
+│   │   └── database.py             # Async SQLAlchemy engine
+│   ├── models/
+│   │   └── document_metadata.py    # ORM model for chunk metadata
+│   ├── rag/
+│   │   ├── ingest.py               # PDF ingestion pipeline (chunk + embed + store)
+│   │   └── retrieve.py             # Semantic query against FAISS
+│   ├── services/                   # Consultant, Safety, Emotion, Memory services
+│   └── api/v1/                     # FastAPI routers
+├── init_db.py                      # Initialize DB tables
+├── .env                            # Environment variables
+├── requirements.txt                # Python dependencies
+└── tests/                          # Pytest suite
+```
 
-- Python 3.10+
-- PostgreSQL 14+
-- Google Gemini API Key → [Get one free](https://ai.google.dev)
+---
+
+## ⚙️ Setup & Installation
 
 ### 1. Clone the repository
 
@@ -122,135 +98,125 @@ git clone https://github.com/Shreyxpatil/InnerTone.git
 cd InnerTone
 ```
 
-### 2. Set up virtual environment
+### 2. Create and activate virtual environment
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
-### 3. Configure environment variables
+### 3. Install dependencies
+
+```bash
+pip install fastapi uvicorn sqlalchemy asyncpg psycopg2-binary faiss-cpu \
+    langchain langchain-community langchain-google-genai \
+    google-generativeai pypdf python-dotenv pydantic-settings gunicorn
+```
+
+### 4. Configure environment variables
+
+Copy `.env.example` to `.env` and fill in your values:
 
 ```bash
 cp .env.example .env
 ```
 
-Fill in your `.env`:
-
+Required variables:
 ```env
-DATABASE_URL="postgresql+asyncpg://<user>:<password>@localhost:5432/<dbname>"
-GEMINI_API_KEY="your-google-gemini-api-key"
+DATABASE_URL=postgresql+asyncpg://<user>:<password>@localhost:5432/<dbname>
+GEMINI_API_KEY=your-gemini-api-key-here
+ENVIRONMENT=development
 ```
 
-### 4. Set up PostgreSQL
+### 5. Set up PostgreSQL
 
 ```sql
 CREATE DATABASE innertone;
-CREATE USER innertone_user WITH PASSWORD 'your_password';
+CREATE USER innertone_user WITH PASSWORD 'yourpassword';
 GRANT ALL PRIVILEGES ON DATABASE innertone TO innertone_user;
 GRANT ALL ON SCHEMA public TO innertone_user;
 ```
 
-### 5. Initialize database tables
+### 6. Initialize the database
 
 ```bash
-PYTHONPATH=. python init_db.py
+python init_db.py
 ```
 
-### 6. Ingest your psychology books
+### 7. Run the RAG ingestion pipeline
 
-Place all PDF books in the `Books/` folder, then run:
+Place your psychology/CBT PDF books in the `Books/` folder, then:
 
 ```bash
 PYTHONPATH=. python innertone/rag/ingest.py
 ```
 
-> ⚠️ **Note**: The free Gemini tier has rate limits. Ingestion uses batching + delays automatically to stay within quota.
+> ⚠️ **Note:** If you are on the Gemini free tier (15 RPM), ingestion uses batching + delays to stay within limits. Full ingestion of all books may take time.
 
 ---
 
-## 🧭 Development Roadmap
+## 📚 RAG Pipeline (Phase 1)
 
-We are building InnerTone in **10 structured phases**:
+The ingestion pipeline:
 
-```
-Phase 1  ✅  RAG pipeline (PDF → Chunks → FAISS)
-Phase 2  🔄  LLM Consultant Engine (Gemini + CBT prompts)
-Phase 3  🔜  Emotion Detection 
-Phase 4  🔜  Safety Detection System
-Phase 5  🔜  Chat System (async WebSocket)
-Phase 6  🔜  Memory System (long-term context)
-Phase 7  🔜  Voice Call Support
-Phase 8  🔜  Video Call Support (WebRTC)
-Phase 9  🔜  Appointment Booking System
-Phase 10 🔜  Full Deployment (Docker, CI/CD)
-```
+1. **Loads** all PDFs from `Books/`
+2. **Chunks** text with 400-600 token chunks and 200-char overlap
+3. **Embeds** each chunk using Gemini `models/gemini-embedding-001`
+4. **Stores** vectors in a local FAISS index (`innertone_index.faiss`)
+5. **Stores** metadata (book name, section, page, content) in PostgreSQL
 
----
-
-## 🔐 Safety by Design
-
-InnerTone has a built-in **safety-first architecture**:
-
-- 🚨 Crisis detection runs **before** the LLM processes any message
-- 🔴 High-risk conversations are flagged and emergency resources are surfaced
-- 🚫 The AI will **never** diagnose medical conditions or suggest medication
-- All responses follow **CBT-style reasoning** with empathy at the core
+Each chunk records:
+- `book_name` — Source PDF
+- `section` — Page reference
+- `content` — Full text chunk
+- `faiss_id` — FAISS vector index ID
 
 ---
 
-## 🤝 AI Response Philosophy
+## 🛡️ Safety System
 
-Every response from InnerTone follows this structure:
+InnerTone automatically detects:
 
-1. **Acknowledge** the emotion the user expressed
-2. **Logical reflection** using CBT principles
-3. **Coping suggestion** — small, actionable step
-4. **Follow-up question** to deepen understanding
+- Self-harm intent
+- Suicidal ideation
+- Severe emotional distress
+
+When detected, the normal AI response is **halted**, emergency helplines are displayed, and the conversation is flagged as high-risk.
 
 ---
 
-## 📁 Project Structure
+## 🤖 AI Consultant Response Format
 
-```
-InnerTone/
-├── Books/                    # PDF knowledge base (11 psychology books)
-├── innertone/
-│   ├── core/
-│   │   ├── config.py         # Pydantic settings
-│   │   └── database.py       # Async SQLAlchemy engine
-│   ├── models/
-│   │   └── document_metadata.py  # ORM for chunk metadata
-│   ├── rag/
-│   │   └── ingest.py         # PDF → Chunks → Embeddings → FAISS
-│   ├── services/             # (Upcoming) Consultant, Safety, Emotion
-│   └── api/                  # (Upcoming) FastAPI routers
-├── init_db.py                # Database initialization script
-└── .env                      # Environment config
-```
+All AI responses follow the CBT-guided format:
+
+1. **Acknowledge** the user's emotion
+2. **Logical Reflection** — reframe the situation
+3. **Coping Suggestion** — actionable, small step
+4. **Follow-up Question** — deepen understanding
+
+---
+
+## 🗺️ Roadmap
+
+- [x] Phase 1: RAG Pipeline from local books
+- [ ] Phase 2: LLM Consultant Engine (Gemini)
+- [ ] Phase 3: Emotion Detection
+- [ ] Phase 4: Safety System
+- [ ] Phase 5: Chat System (FastAPI)
+- [ ] Phase 6: Memory System
+- [ ] Phase 7: Voice Call Support
+- [ ] Phase 8: Video Call Support
+- [ ] Phase 9: Appointment Booking
+- [ ] Phase 10: Deployment
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
----
-
-## 👤 Author
-
-**Shreya Patil**
-Building AI systems for mental health & human wellbeing.
-
-[![GitHub](https://img.shields.io/badge/GitHub-Shreyxpatil-black.svg?logo=github)](https://github.com/Shreyxpatil/InnerTone)
+This project is licensed under the MIT License.
 
 ---
 
 <div align="center">
-
-*Built with ❤️ for mental wellness*
-
-**⭐ Star this repo if you believe in the mission!**
-
+  Built with ❤️ and code by <a href="https://github.com/Shreyxpatil">Shreyxpatil</a>
 </div>

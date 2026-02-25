@@ -102,8 +102,9 @@ async def process_books():
                 print(f"Embedded {len(embeddings)}/{len(texts)} chunks...")
                 await asyncio.sleep(5)  # Delay to respect rate limits
             
-            # Add to FAISS index
-            index.add(embeddings)
+            # Add to FAISS index — must be numpy float32
+            import numpy as np
+            index.add(np.array(embeddings, dtype="float32"))
             
             # Save metadata to database
             for i, chunk in enumerate(chunks):
