@@ -1,0 +1,120 @@
+# InnerTone Architecture & Phase 1 Plan
+
+## 1. System Architecture
+
+The InnerTone platform follows a modern, modular microservices-inspired architecture built as a cohesive FastAPI monolith for operational simplicity in the early stages, with clear domain boundaries.
+
+```mermaid
+graph TD
+    %% Client Layer
+    Client[Client Apps/Web] --> API[FastAPI Gateway/Router]
+    
+    %% Core Services Layer
+    subgraph "Core Backend Services (FastAPI)"
+        API --> ChatService[Chat & Context Service]
+        API --> BookingService[Appointment Booking]
+        API --> CallService[Voice/Video Call Signaling]
+        
+        ChatService --> SafetyModule[Safety & Crisis Detection]
+        ChatService --> EmotionModule[Emotion Detection]
+        ChatService --> ConsultantEngine[LLM Consultant Engine]
+        
+        ConsultantEngine --> RAG[RAG Retrieval Pipeline]
+        ConsultantEngine --> Memory[Long-term Memory System]
+    end
+    
+    %% Data Layer
+    subgraph "Data Storage"
+        Memory --> DB[(PostgreSQL Primary)]
+        BookingService --> DB
+        
+        RAG --> VectorDB[(FAISS Local Index)]
+        
+        %% The ingestion pipeline
+        Ingestion[Offline PDF Ingestion] --> VectorDB
+    end
+    
+    %% External Integrations
+    subgraph "External Providers"
+        ConsultantEngine --> LLMAPI[LLM API Provider]
+        CallService --> WebRTC[WebRTC/Turn server]
+    end
+```
+
+### Key Components:
+- **FastAPI Backend**: Handles high-concurrency async workloads efficiently.
+- **PostgreSQL**: Primary relational DB for users, appointments, and conversation memory.
+- **FAISS**: Local, high-performance library for efficient similarity search on embeddings.
+- **Consultant Engine**: Core orchestrator applying CBT rules and prompt chaining.
+- **Safety Module**: A fast classifier/regex layer that intercepts input *before* heavy LLM processing.
+- **WebRTC**: Used for Voice and Video call signaling, orchestrated by FastAPI WebSockets.
+
+## 2. Production-Ready Folder Structure
+
+```text
+/home/ca/Projects/InnerTone/
+├── Books/                      # Local PDF storage (Do not track in git)
+├── docker-compose.yml          # Local infra (Postgres, pgvector, Redis if needed)
+├── requirements.txt            # Python dependencies
+├── .env                        # Environment variables
+├── run.py                      # Main entry point using uvicorn
+├── innertone/
+│   ├── __init__.py
+│   ├── main.py                 # FastAPI application definition
+│   ├── core/                   # App-wide configurations
+│   │   ├── config.py           # Pydantic BaseSettings
+│   │   ├── security.py         # JWT/Auth
+│   │   ├── database.py         # SQLAlchemy & pgvector engine setups
+│   │   └── exceptions.py       # Global exception handlers
+│   ├── api/                    # API Routers
+│   │   ├── v1/
+│   │   │   ├── chat.py
+│   │   │   ├── calls.py
+│   │   │   └── booking.py
+│   │   └── dependencies.py     # Auth, DB Session injectors
+│   ├── services/               # Core business logic
+│   │   ├── consultant.py       # LLM prompt orchestration
+│   │   ├── safety.py           # Crisis detection logic
+│   │   ├── emotion.py          # Emotion classification
+│   │   └── memory.py           # Chat history & summarization
+│   ├── rag/                    # Retrieval-Augmented Generation module
+│   │   ├── ingest.py           # PDF parsing and chunking script
+│   │   ├── embed.py            # Embedding generation logic
+│   │   └── retrieve.py         # Vector search logic
+│   ├── models/                 # SQLAlchemy ORM Models
+│   │   ├── user.py
+│   │   ├── memory.py
+│   │   ├── booking.py
+│   │   └── document.py         # pgvector models
+│   └── schemas/                # Pydantic models for validation
+│       ├── chat.py
+│       └── booking.py
+└── tests/                      # Pytest suite
+    ├── conftest.py
+    └── ...
+```
+
+## 3. Phase 1 Plan: RAG Pipeline from Local Books
+
+**Goal**: Build a robust ingestion pipeline that can process PDFs from `/home/ca/Projects/InnerTone/Books` and store them cleanly in FAISS with essential metadata (book name, topic, section) maintained in SQLite or a JSON datastore alongside it.
+
+**Steps Overview**:
+1. **Dependencies Setup**: Install FastAPI, SQLAlchemy, asyncpg, FAISS (`faiss-cpu`), `sentence-transformers`, LangChain/LlamaIndex (for document loading and text splitting), and PyPDF.
+2. **Database & FAISS setup**: Establish a local FAISS index file and a lightweight metadata store.
+3. **PDF Extraction**: Implement a reader to load files from `/home/ca/Projects/InnerTone/Books`.
+4. **Text Cleaning & Chunking**: 
+   - Clean whitespace, headers, non-ascii characters.
+   - Chunk carefully: 400-600 tokens with overlaps (e.g., 50 tokens overlap).
+   - Infer metadata (filename -> book name, extract Table of Contents or use basic heuristics for sectioning).
+5. **Embedding**: Use an embedding model (e.g., `text-embedding-3-small` or local `all-MiniLM-L6-v2` via `sentence-transformers`) to turn chunks into vectors.
+6. **Upsert to DB**: Efficiently add vectors to the FAISS index and save the mapping to metadata.
+
+## Verification Plan
+
+### Automated Tests
+- We will write a test script (`tests/test_rag_pipeline.py`) to verify that a PDF can be successfully parsed into chunks (unit test).
+- We will write a small retrieval script (e.g., `verify_retrieval.py`) that queries FAISS to ensure correct semantic extraction, simulating a query like "What is CBT?". 
+
+### Manual Verification
+- Provide instructions for you to place a test PDF in `/home/ca/Projects/InnerTone/Books`.
+- Run the ingestion script together and verify the `.faiss` index file and metadata are created correctly.
