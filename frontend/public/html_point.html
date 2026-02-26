@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head><style>body{margin:0;} img{cursor:crosshair;}</style></head>
+<body>
+    <img src="consultant-avatar2.png" id="img" style="width:100%; height:auto;" />
+    <script>
+        document.getElementById('img').onclick = function(e) {
+            const rect = e.target.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width * 100;
+            const y = (e.clientY - rect.top) / rect.height * 100;
+            console.log(`X: ${x.toFixed(2)}%, Y: ${y.toFixed(2)}%`);
+        };
+    </script>
+</body>
+</html>

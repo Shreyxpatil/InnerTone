@@ -30,6 +30,15 @@ const CallsPage = () => {
     const [aiState, setAiState] = useState('idle'); // 'speaking', 'listening', 'thinking', 'idle'
     const aiWs = useRef(null);
 
+    // Static layout coordinates for the new consultant-avatar2.png image
+    // These coordinates map to the pupils and the center of the lips.
+    const [avatarFaceCoords, setAvatarFaceCoords] = useState({
+        leftEye: { left: 45.5, top: 27.5 },
+        rightEye: { left: 53.0, top: 27.5 },
+        mouth: { left: 49.5, top: 37.2 }
+    });
+    const avatarImageRef = useRef(null);
+
     // Feedback Modal State
     const [showFeedback, setShowFeedback] = useState(false);
     const [feedbackRating, setFeedbackRating] = useState(0);
@@ -95,28 +104,49 @@ const CallsPage = () => {
     // ---------------------------------------------------------
     // Audio Visualizer (Wave) Logic
     // ---------------------------------------------------------
+    const ttsResumeInterval = useRef(null);
+
     const speakText = (text) => {
         if (!window.speechSynthesis) return;
 
-        // Cancel any ongoing speech
+        // Cancel any ongoing speech and clear keepalive
         window.speechSynthesis.cancel();
+        if (ttsResumeInterval.current) clearInterval(ttsResumeInterval.current);
 
-        // Split into sentences to avoid Chrome's ~15s TTS cutoff bug
+        // Chrome bug workaround: periodically call resume() to prevent silent pause
+        ttsResumeInterval.current = setInterval(() => {
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.resume();
+            } else {
+                clearInterval(ttsResumeInterval.current);
+            }
+        }, 5000);
+
+        // Split into sentences to avoid Chrome's utterance length limit
         const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
         const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Female')) || voices[0];
+        const preferredVoice = voices.find(v =>
+            v.name.includes('Google US English') || v.name.includes('Female')
+        ) || voices[0];
 
-        let i = 0;
+        let index = 0;
         const speakNext = () => {
-            if (i >= sentences.length) return;
-            const utterance = new SpeechSynthesisUtterance(sentences[i].trim());
+            if (index >= sentences.length) {
+                // All done speaking
+                clearInterval(ttsResumeInterval.current);
+                return;
+            }
+            const sentence = sentences[index].trim();
+            if (!sentence) { index++; speakNext(); return; }
+
+            const utterance = new SpeechSynthesisUtterance(sentence);
             utterance.rate = 0.95;
             utterance.pitch = 1.1;
             if (preferredVoice) utterance.voice = preferredVoice;
-            utterance.onend = () => {
-                i++;
-                speakNext();
-            };
+
+            utterance.onend = () => { index++; speakNext(); };
+            utterance.onerror = () => { index++; speakNext(); }; // Skip on error
+
             window.speechSynthesis.speak(utterance);
         };
         speakNext();
@@ -476,92 +506,145 @@ const CallsPage = () => {
                 </div>
             </div>
 
-            {/* Layout Grid */}
-            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: mode === 'p2p' ? '1fr 1fr' : '1fr', gap: '24px' }}>
+            {/* Layout Area */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', marginTop: '16px', height: '100%', minHeight: 0 }}>
 
                 {mode === 'p2p' ? (
                     <>
-                        {/* AI Video Call Layout */}
-                        <div className="glass-panel" style={{ position: 'relative', overflow: 'hidden', minHeight: '400px', background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: '80px' }}>
-
-                            {/* Consultant Avatar */}
+                        {/* Split-Screen Video Call Layout (Full Width) */}
+                        {/* Use calc() to lock the height perfectly to the available viewport without scrolling */}
+                        <div style={{
+                            flex: 1, display: 'flex', height: 'calc(100vh - 200px)', minHeight: '400px', maxHeight: '800px',
+                            background: '#000', borderRadius: 'var(--radius-lg)',
+                            overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            {/* Left Pane: AI Consultant */}
                             <div style={{
-                                width: '220px', height: '220px', borderRadius: '50%',
-                                overflow: 'hidden',
-                                boxShadow: aiState === 'speaking' ? '0 0 60px rgba(118, 75, 162, 0.6), 0 0 120px rgba(102, 126, 234, 0.3)' : '0 0 30px rgba(102, 126, 234, 0.2)',
-                                animation: aiState === 'speaking' ? 'avatar-speak 1s infinite' : aiState === 'thinking' ? 'thinking-pulse 2s infinite' : 'avatar-breathe 4s ease-in-out infinite',
-                                transition: 'box-shadow 0.5s ease',
-                                marginBottom: '20px', position: 'relative',
-                                border: '4px solid rgba(102, 126, 234, 0.4)',
+                                flex: 1, position: 'relative', overflow: 'hidden',
+                                background: 'black', borderRight: '1px solid rgba(255,255,255,0.1)',
+                                display: 'flex', justifyContent: 'center', alignItems: 'center'
                             }}>
-                                <img src="/consultant-avatar.jpg" alt="Dr. Ananya Sharma" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                {/* Aspect-Ratio Locked Container for perfect overlay alignment */}
+                                <div style={{
+                                    position: 'relative', width: '100%', height: '100%', aspectRatio: '1536 / 1024',
+                                    zIndex: 1,
+                                    boxShadow: aiState === 'speaking' ? 'inset 0 0 60px rgba(118,75,162,0.6)' : 'none',
+                                    transition: 'box-shadow 0.5s ease',
+                                }}>
+                                    {/* Un-cropped full pane image */}
+                                    <img
+                                        ref={avatarImageRef}
+                                        src="/consultant-avatar2.png"
+                                        alt="Dr. Ananya Sharma"
+                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                    />
 
-                                {/* Speaking indicator rings */}
-                                {aiState === 'speaking' && (
-                                    <>
-                                        <div style={{ position: 'absolute', inset: '-8px', borderRadius: '50%', border: '2px solid rgba(118,75,162,0.4)', animation: 'sonar 2s infinite' }} />
-                                        <div style={{ position: 'absolute', inset: '-16px', borderRadius: '50%', border: '1px solid rgba(118,75,162,0.2)', animation: 'sonar 2s 0.5s infinite' }} />
-                                    </>
+                                    {/* Face Animations (Dynamically mapped via MediaPipe bounds - DEBUG MODE) */}
+                                    {avatarFaceCoords && (
+                                        <>
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: `${avatarFaceCoords.leftEye.top}%`,
+                                                left: `${avatarFaceCoords.leftEye.left}%`,
+                                                width: '12px', height: '12px', background: 'red', opacity: 0.5,
+                                                transform: 'translate(-50%, -50%)', zIndex: 10
+                                            }} title="Left Eye (Red)" />
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: `${avatarFaceCoords.rightEye.top}%`,
+                                                left: `${avatarFaceCoords.rightEye.left}%`,
+                                                width: '12px', height: '12px', background: 'red', opacity: 0.5,
+                                                transform: 'translate(-50%, -50%)', zIndex: 10
+                                            }} title="Right Eye (Red)" />
+
+                                            <div style={{
+                                                position: 'absolute',
+                                                top: `${avatarFaceCoords.mouth.top}%`,
+                                                left: `${avatarFaceCoords.mouth.left}%`,
+                                                width: '16px', height: '10px', background: 'blue', opacity: 0.5,
+                                                transform: 'translate(-50%, -50%)', zIndex: 10
+                                            }} title="Mouth (Blue)" />
+                                        </>
+                                    )}
+
+                                    {/* Speaking indicator rings */}
+                                    {aiState === 'speaking' && (
+                                        <>
+                                            <div style={{ position: 'absolute', inset: '0px', border: '3px solid rgba(118,75,162,0.4)', animation: 'sonar 2s infinite' }} />
+                                        </>
+                                    )}
+                                </div>
+
+                                {/* Floating Name Badge */}
+                                <div style={{ position: 'absolute', bottom: '16px', left: '16px', background: 'rgba(0,0,0,0.6)', padding: '6px 14px', borderRadius: 'var(--radius-sm)', backdropFilter: 'blur(4px)' }}>
+                                    <h3 style={{ fontSize: '1rem', color: 'white', margin: 0 }}>Dr. Ananya Sharma</h3>
+                                    <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', margin: 0 }}>
+                                        {aiState === 'speaking' ? '🔊 Speaking...' : aiState === 'thinking' ? '💭 Thinking...' : '👂 Listening...'}
+                                    </p>
+                                </div>
+
+                                {/* Live Captions Overlay */}
+                                {aiTranscript && (aiState === 'speaking' || aiState === 'listening') && (
+                                    <div style={{
+                                        position: 'absolute', top: '16px', left: '16px', right: '16px',
+                                        background: 'rgba(0,0,0,0.75)', color: 'white', padding: '12px 20px',
+                                        borderRadius: 'var(--radius-md)', fontSize: '0.95rem',
+                                        textAlign: 'center', animation: 'slide-down 0.3s ease-out', backdropFilter: 'blur(8px)'
+                                    }}>
+                                        {aiTranscript}
+                                    </div>
                                 )}
                             </div>
 
-                            {/* Name & Status */}
-                            <h3 style={{ fontSize: '1.3rem', marginBottom: '4px', color: 'white' }}>Dr. Ananya Sharma</h3>
-                            <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '16px' }}>
-                                {aiState === 'speaking' ? '🔊 Speaking...' : aiState === 'thinking' ? '💭 Thinking...' : aiState === 'listening' ? '👂 Listening...' : 'Wellness Consultant'}
-                            </p>
+                            {/* Right Pane: User Camera */}
+                            <div style={{
+                                flex: 1, position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden',
+                                background: '#1e293b', border: '1px solid rgba(255,255,255,0.1)'
+                            }}>
+                                <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
 
-                            {/* Live Captions on the avatar panel */}
-                            {aiTranscript && (aiState === 'speaking' || aiState === 'listening') && (
-                                <div style={{
-                                    position: 'absolute', bottom: '70px', left: '50%', transform: 'translateX(-50%)',
-                                    background: 'rgba(0,0,0,0.75)', color: 'white', padding: '10px 20px',
-                                    borderRadius: 'var(--radius-md)', fontSize: '0.9rem', maxWidth: '90%',
-                                    textAlign: 'center', animation: 'slide-up 0.3s ease-out',
-                                }}>
-                                    {aiTranscript}
+                                {/* Floating Name Badge */}
+                                <div style={{ position: 'absolute', bottom: '16px', left: '16px', background: 'rgba(0,0,0,0.6)', padding: '6px 14px', borderRadius: 'var(--radius-sm)', backdropFilter: 'blur(4px)' }}>
+                                    <h3 style={{ fontSize: '1rem', color: 'white', margin: 0 }}>You</h3>
                                 </div>
-                            )}
 
-                            {/* Tap to Speak button */}
-                            {(status !== 'Idle') && (
-                                <div style={{ position: 'absolute', bottom: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                                    {userSpeechText && (
-                                        <div style={{ padding: '6px 14px', background: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.3)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: '0.85rem' }}>
-                                            🎤 "{userSpeechText}"
+                                {/* Start Overlay / Tap to Speak */}
+                                {status === 'Idle' ? (
+                                    <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }}>
+                                        <button className="btn btn-primary" onClick={startVideoCall} style={{ padding: '14px 32px', fontSize: '1.1rem', borderRadius: '999px', boxShadow: '0 4px 12px rgba(59,130,246,0.4)' }}>
+                                            <Video size={20} style={{ marginRight: '8px' }} /> Join Call
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div style={{ position: 'absolute', bottom: '24px', right: '24px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '12px' }}>
+                                        <canvas ref={canvasRef} width="120" height="40" style={{ width: '120px', height: '40px', zIndex: 10, background: 'rgba(0,0,0,0.3)', borderRadius: 'var(--radius-sm)' }} />
+
+                                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                            {userSpeechText && (
+                                                <div style={{ padding: '6px 12px', background: 'rgba(0,0,0,0.6)', borderRadius: 'var(--radius-md)', color: 'white', fontSize: '0.85rem', maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                    {userSpeechText}
+                                                </div>
+                                            )}
+                                            <button
+                                                className="btn"
+                                                onClick={isRecording ? stopListeningMic : startListeningMic}
+                                                disabled={aiState === 'thinking' || aiState === 'speaking'}
+                                                style={{
+                                                    width: '50px', height: '50px', borderRadius: '50%', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                    background: isRecording ? 'var(--emotion-stressed)' : 'rgba(255,255,255,0.2)',
+                                                    border: isRecording ? 'none' : '1px solid rgba(255,255,255,0.4)',
+                                                    color: 'white',
+                                                    animation: isRecording ? 'thinking-pulse 1.5s infinite' : 'none',
+                                                    backdropFilter: 'blur(4px)'
+                                                }}
+                                                title={isRecording ? 'Listening...' : 'Tap to Speak'}
+                                            >
+                                                <Mic size={22} />
+                                            </button>
                                         </div>
-                                    )}
-                                    <button
-                                        className={`btn ${isRecording ? 'btn-ghost' : 'btn-primary'}`}
-                                        onClick={isRecording ? stopListeningMic : startListeningMic}
-                                        disabled={aiState === 'thinking' || aiState === 'speaking'}
-                                        style={{
-                                            padding: '10px 24px', fontSize: '0.95rem', borderRadius: '999px',
-                                            background: isRecording ? 'var(--emotion-stressed)' : undefined,
-                                            animation: isRecording ? 'thinking-pulse 1.5s infinite' : 'none',
-                                        }}
-                                    >
-                                        <Mic size={18} /> {isRecording ? 'Listening...' : 'Tap to Speak'}
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Local Camera + Controls */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            <div className="glass-panel" style={{ position: 'relative', overflow: 'hidden', minHeight: '300px', background: 'black' }}>
-                                <video ref={localVideoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                <div style={{ position: 'absolute', bottom: '12px', left: '12px', background: 'rgba(0,0,0,0.6)', padding: '4px 12px', borderRadius: 'var(--radius-md)', fontSize: '0.8rem', color: 'white' }}>
-                                    You
-                                </div>
-                                <canvas ref={canvasRef} width="120" height="40" style={{ position: 'absolute', bottom: '12px', right: '12px', width: '120px', height: '40px', zIndex: 10 }} />
+                                    </div>
+                                )}
                             </div>
-
-                            {status === 'Idle' && (
-                                <button className="btn btn-primary" onClick={startVideoCall} style={{ padding: '14px 28px', fontSize: '1.05rem' }}>
-                                    <Video size={20} /> Start Video Call
-                                </button>
-                            )}
                         </div>
                     </>
                 ) : (
@@ -810,6 +893,51 @@ const CallsPage = () => {
                     50% { transform: scale(1.01); }
                     75% { transform: scale(1.05); }
                     100% { transform: scale(1); }
+                }
+                @keyframes blink-anim {
+                    0%, 90%, 100% { opacity: 0; transform: scaleY(0); }
+                    93%, 97% { opacity: 1; transform: scaleY(1); }
+                }
+                
+                /* Advanced Lip Sync based on provided blend shapes
+                   Base percentages:
+                   mouth_open: 0.55
+                   mouth_wide: 0.35 
+                   mouth_smile: 0.18
+                   jaw_open: 0.45
+                   lip_up: 0.22
+                   lip_down: 0.25
+                   
+                   Idle talking loop (natural speech): 
+                   mouth_open: 0.45 -> 0.65 oscillate
+                   jaw_open: 0.35 -> 0.55 oscillate
+                */
+                @keyframes mouth-talk-advanced {
+                    /* Base state (mouth_smile roughly) */
+                    0% { 
+                        transform: scale(1, 1); 
+                        border-radius: 40% 40% 60% 60%;
+                    }
+                    /* mouth_wide + mild jaw_open */
+                    25% { 
+                        transform: scale(1.35, 1.35); 
+                        border-radius: 30% 30% 70% 70%;
+                    }
+                    /* mouth_open (oscillating up to 0.65) + jaw_open (up to 0.55) */
+                    50% { 
+                        transform: scale(1.1, 2.65); /* Vertical stretch for jaw/mouth open */
+                        border-radius: 45% 45% 55% 55%; /* More rounded when open */
+                    }
+                    /* lip_up + lip_down distinct shape */
+                    75% { 
+                        transform: scale(1.2, 1.6); 
+                        border-radius: 35% 35% 65% 65%;
+                    }
+                    /* Return to base/smile idle state */
+                    100% { 
+                        transform: scale(1, 1.2); 
+                        border-radius: 40% 40% 60% 60%;
+                    }
                 }
                 .sonar-wave {
                     position: absolute;
