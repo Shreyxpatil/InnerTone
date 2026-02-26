@@ -94,7 +94,14 @@ async def detect_emotion(user_message: str) -> dict:
             client = genai.Client(api_key=settings.GEMINI_API_KEY)
             prompt = _GEMINI_CLASSIFICATION_PROMPT.format(message=user_message[:500])
             
-            fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.0-flash-lite"]
+            fallback_models = [
+                "gemini-2.5-flash-lite", 
+                "gemini-2.0-flash-lite",
+                "gemini-2.5-flash", 
+                "gemini-2.0-flash", 
+                "gemini-flash-lite-latest",
+                "gemini-flash-latest",
+            ]
             response_text = None
             last_error = None
             
@@ -109,8 +116,10 @@ async def detect_emotion(user_message: str) -> dict:
                         )
                     )
                     response_text = response.text
+                    print(f"DEBUG (Emotion): Success with {model_name}")
                     break
                 except Exception as e:
+                    print(f"DEBUG (Emotion): Model {model_name} failed: {str(e)}")
                     last_error = e
                     continue
             

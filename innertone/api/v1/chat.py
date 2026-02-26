@@ -31,19 +31,21 @@ async def send_message(
     3. Save user message + AI response to memory
     4. Return structured response
     """
-    # 2. Detect emotion in parallel (non-blocking)
-    history, emotion_result = await asyncio.gather(
-        get_history(request.session_id, db),
-        detect_emotion(request.message),
-    )
+    # 1. Load conversation history from memory (PostgreSQL)
+    history = await get_history(request.session_id, db)
 
-    # 3. Get response from consultant engine
+    # 2. Run Consultant Engine and Emotion Detection in parallel
     try:
-        result = await get_consultant_response(
+        # We wrap detect_emotion and get_consultant_response in gather
+        # so they start simultaneously.
+        emotion_task = asyncio.create_task(detect_emotion(request.message))
+        consultant_task = asyncio.create_task(get_consultant_response(
             user_message=request.message,
             conversation_history=history,
             db=db,
-        )
+        ))
+        
+        emotion_result, result = await asyncio.gather(emotion_task, consultant_task)
     except (APIError, ClientError) as api_err:
         return ChatResponse(
             session_id=request.session_id,
@@ -54,6 +56,9 @@ async def send_message(
             emotion_intensity="low"
         )
     except Exception as e:
+        import traceback
+        print(f"ERROR in chat endpoint: {str(e)}")
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
     # 4. Persist conversation messages

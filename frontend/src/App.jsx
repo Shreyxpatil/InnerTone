@@ -3,6 +3,7 @@ import { Sparkles, MessageSquare, Calendar, Activity, Phone } from 'lucide-react
 import ChatPage from './pages/ChatPage';
 import DashboardPage from './pages/DashboardPage';
 import BookingsPage from './pages/BookingsPage';
+import CallsPage from './pages/CallsPage';
 
 function Sidebar() {
     return (
@@ -53,7 +54,7 @@ function App() {
                         <Route path="/" element={<DashboardPage />} />
                         <Route path="/chat" element={<ChatPage />} />
                         <Route path="/appointments" element={<BookingsPage />} />
-                        <Route path="/calls" element={<div style={{ padding: 40 }}><h2>Calls Module (Coming Soon)</h2></div>} />
+                        <Route path="/calls" element={<CallsPage />} />
                     </Routes>
                 </main>
             </div>

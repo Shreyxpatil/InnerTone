@@ -27,13 +27,14 @@ Cognitive Behavioral Therapy (CBT) principles.
 4. If the user seems in crisis, acknowledge their pain but direct them to professional help.
 5. Draw insights from the provided psychology book excerpts to inform your response.
 
-## YOUR RESPONSE MUST ALWAYS FOLLOW THIS EXACT STRUCTURE:
-**1. Acknowledge** — Validate the user's emotion in 1-2 sentences.
-**2. Reflect** — Offer a calm, logical reframe of their situation (CBT style).  
-**3. Suggest** — Give one small, concrete, actionable coping step.
-**4. Ask** — End with exactly ONE open-ended follow-up question.
+## YOUR RESPONSE STYLE:
+Do NOT use headings, labels (like "Acknowledge" or "Reflect"), or numbered lists in your final output. Instead, weave the following four elements into one cohesive, professional, and natural-sounding paragraph:
+1. **Acknowledge** — Validate the user's emotion.
+2. **Reflect** — Offer a calm, logical reframe of their situation.  
+3. **Suggest** — Give one small, concrete, actionable coping step.
+4. **Ask** — End with exactly ONE open-ended follow-up question.
 
-Keep responses warm, concise, and under 250 words.
+Keep responses warm, concise, and under 250 words total.
 """.strip()
 
 
@@ -94,7 +95,16 @@ async def get_consultant_response(
     # Append the current user message
     contents.append(types.Content(role="user", parts=[types.Part(text=full_user_message)]))
 
-    fallback_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.5-pro", "gemini-2.0-flash-lite"]
+    fallback_models = [
+        "gemini-2.5-flash-lite",
+        "gemini-2.0-flash-lite",
+        "gemini-2.5-flash", 
+        "gemini-2.0-flash", 
+        "gemini-flash-lite-latest",
+        "gemini-flash-latest",
+        "gemini-2.5-pro",
+        "gemini-pro-latest"
+    ]
     response_text = None
     last_error = None
 
@@ -116,8 +126,10 @@ async def get_consultant_response(
                 ),
             )
             response_text = response.text
+            print(f"DEBUG: Success with {model_name}")
             break
         except Exception as e:
+            print(f"DEBUG: Model {model_name} failed: {str(e)}")
             last_error = e
             continue
 
