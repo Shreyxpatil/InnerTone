@@ -204,8 +204,8 @@ All AI responses follow the CBT-guided format:
 - [ ] Phase 4: Safety System
 - [ ] Phase 5: Chat System (FastAPI)
 - [ ] Phase 6: Memory System
-- [ ] Phase 7: Voice Call Support
-- [ ] Phase 8: Video Call Support
+- [x] Phase 7: Voice Call Support
+- [x] Phase 8: Video Call Support
 - [ ] Phase 9: Appointment Booking
 - [ ] Phase 10: Deployment
 

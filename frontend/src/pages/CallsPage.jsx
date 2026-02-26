@@ -35,7 +35,7 @@ const CallsPage = () => {
     const [avatarFaceCoords, setAvatarFaceCoords] = useState({
         leftEye: { left: 43.0, top: 22.2 },
         rightEye: { left: 51.0, top: 22.2 },
-        mouth: { left: 47.50, top: 33.0 }
+        mouth: { left: 46.50, top: 33.0 }
     });
     const avatarImageRef = useRef(null);
 
@@ -550,18 +550,28 @@ const CallsPage = () => {
                                                             position: 'absolute',
                                                             top: `${avatarFaceCoords.leftEye.top}%`,
                                                             left: `${avatarFaceCoords.leftEye.left}%`,
-                                                            width: '4.5%', height: '2.5%', borderRadius: '50%', background: '#ecb8a0', opacity: 0,
+                                                            width: '4.5%', height: '2.5%',
+                                                            borderRadius: '50% 50% 20% 20%',
+                                                            background: 'linear-gradient(to bottom, #bd856c, #a06e5a)',
+                                                            borderBottom: '2px solid #2a1914',
+                                                            boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.3)',
+                                                            opacity: 0,
                                                             animation: 'blink-anim 4s infinite',
-                                                            transform: 'translate(-50%, -50%)'
+                                                            transform: 'translate(-50%, -50%)', zIndex: 10
                                                         }} />
 
                                                         <div className="eye-blink" style={{
                                                             position: 'absolute',
                                                             top: `${avatarFaceCoords.rightEye.top}%`,
                                                             left: `${avatarFaceCoords.rightEye.left}%`,
-                                                            width: '4.5%', height: '2.5%', borderRadius: '50%', background: '#ecb8a0', opacity: 0,
+                                                            width: '4.5%', height: '2.5%',
+                                                            borderRadius: '50% 50% 20% 20%',
+                                                            background: 'linear-gradient(to bottom, #bd856c, #a06e5a)',
+                                                            borderBottom: '2px solid #2a1914',
+                                                            boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.3)',
+                                                            opacity: 0,
                                                             animation: 'blink-anim 4s 0.05s infinite',
-                                                            transform: 'translate(-50%, -50%)'
+                                                            transform: 'translate(-50%, -50%)', zIndex: 10
                                                         }} />
 
                                                         {aiState === 'speaking' && (
@@ -569,11 +579,14 @@ const CallsPage = () => {
                                                                 position: 'absolute',
                                                                 top: `${avatarFaceCoords.mouth.top}%`,
                                                                 left: `${avatarFaceCoords.mouth.left}%`,
-                                                                width: '6.5%', height: '2.5%', background: 'rgba(120, 50, 50, 0.4)',
+                                                                width: '6.5%', height: '2.5%',
+                                                                background: '#2b1013', /* Dark inner mouth */
+                                                                borderTop: '2px solid rgba(232, 224, 224, 0.5)', /* Hint of upper teeth */
+                                                                boxShadow: 'inset 0 4px 6px rgba(0,0,0,0.7)',
                                                                 borderRadius: '40% 40% 60% 60%',
                                                                 animation: 'mouth-talk-advanced 0.35s infinite alternate ease-in-out',
                                                                 transformOrigin: 'top center',
-                                                                transform: 'translate(-50%, -50%)'
+                                                                transform: 'translate(-50%, -50%)', zIndex: 10
                                                             }} />
                                                         )}
                                                     </>
@@ -908,48 +921,41 @@ const CallsPage = () => {
                     100% { transform: scale(1); }
                 }
                 @keyframes blink-anim {
-                    0%, 90%, 100% { opacity: 0; transform: scaleY(0); }
-                    93%, 97% { opacity: 1; transform: scaleY(1); }
+                    0%, 90%, 100% { opacity: 0; transform: translate(-50%, -50%) scaleY(0); }
+                    93%, 97% { opacity: 1; transform: translate(-50%, -50%) scaleY(1); }
                 }
                 
-                /* Advanced Lip Sync based on provided blend shapes
-                   Base percentages:
-                   mouth_open: 0.55
-                   mouth_wide: 0.35 
-                   mouth_smile: 0.18
-                   jaw_open: 0.45
-                   lip_up: 0.22
-                   lip_down: 0.25
-                   
-                   Idle talking loop (natural speech): 
-                   mouth_open: 0.45 -> 0.65 oscillate
-                   jaw_open: 0.35 -> 0.55 oscillate
-                */
+                /* Advanced Lip Sync */
                 @keyframes mouth-talk-advanced {
-                    /* Base state (mouth_smile roughly) */
+                    /* Base state - closed mouth / tiny gap */
                     0% { 
-                        transform: scale(1, 1); 
+                        transform: translate(-50%, -50%) scale(0.8, 0.2); 
                         border-radius: 40% 40% 60% 60%;
+                        opacity: 0.3;
                     }
                     /* mouth_wide + mild jaw_open */
                     25% { 
-                        transform: scale(1.35, 1.35); 
+                        transform: translate(-50%, -50%) scale(1.1, 1.2); 
                         border-radius: 30% 30% 70% 70%;
+                        opacity: 0.8;
                     }
-                    /* mouth_open (oscillating up to 0.65) + jaw_open (up to 0.55) */
+                    /* mouth_open (oscillating) + jaw_open */
                     50% { 
-                        transform: scale(1.1, 2.65); /* Vertical stretch for jaw/mouth open */
-                        border-radius: 45% 45% 55% 55%; /* More rounded when open */
+                        transform: translate(-50%, -50%) scale(0.9, 2.2); 
+                        border-radius: 45% 45% 55% 55%; 
+                        opacity: 0.9;
                     }
                     /* lip_up + lip_down distinct shape */
                     75% { 
-                        transform: scale(1.2, 1.6); 
+                        transform: translate(-50%, -50%) scale(1.2, 1.4); 
                         border-radius: 35% 35% 65% 65%;
+                        opacity: 0.8;
                     }
                     /* Return to base/smile idle state */
                     100% { 
-                        transform: scale(1, 1.2); 
+                        transform: translate(-50%, -50%) scale(0.9, 0.3); 
                         border-radius: 40% 40% 60% 60%;
+                        opacity: 0.4;
                     }
                 }
                 .sonar-wave {
