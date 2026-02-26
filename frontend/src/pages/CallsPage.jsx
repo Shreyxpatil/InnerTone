@@ -33,9 +33,9 @@ const CallsPage = () => {
     // Static layout coordinates for the new consultant-avatar2.png image
     // These coordinates map to the pupils and the center of the lips.
     const [avatarFaceCoords, setAvatarFaceCoords] = useState({
-        leftEye: { left: 45.5, top: 27.5 },
-        rightEye: { left: 53.0, top: 27.5 },
-        mouth: { left: 49.5, top: 37.2 }
+        leftEye: { left: 43.0, top: 22.2 },
+        rightEye: { left: 51.0, top: 22.2 },
+        mouth: { left: 47.50, top: 33.0 }
     });
     const avatarImageRef = useRef(null);
 
@@ -524,9 +524,9 @@ const CallsPage = () => {
                                 background: 'black', borderRight: '1px solid rgba(255,255,255,0.1)',
                                 display: 'flex', justifyContent: 'center', alignItems: 'center'
                             }}>
-                                {/* Aspect-Ratio Locked Container for perfect overlay alignment */}
+                                {/* Aspect-Ratio Locked Container */}
                                 <div style={{
-                                    position: 'relative', width: '100%', height: '100%', aspectRatio: '1536 / 1024',
+                                    position: 'relative', width: '100%', height: '100%',
                                     zIndex: 1,
                                     boxShadow: aiState === 'speaking' ? 'inset 0 0 60px rgba(118,75,162,0.6)' : 'none',
                                     transition: 'box-shadow 0.5s ease',
@@ -536,42 +536,55 @@ const CallsPage = () => {
                                         ref={avatarImageRef}
                                         src="/consultant-avatar2.png"
                                         alt="Dr. Ananya Sharma"
-                                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }}
                                     />
 
-                                    {/* Face Animations (Dynamically mapped via MediaPipe bounds - DEBUG MODE) */}
-                                    {avatarFaceCoords && (
-                                        <>
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: `${avatarFaceCoords.leftEye.top}%`,
-                                                left: `${avatarFaceCoords.leftEye.left}%`,
-                                                width: '12px', height: '12px', background: 'red', opacity: 0.5,
-                                                transform: 'translate(-50%, -50%)', zIndex: 10
-                                            }} title="Left Eye (Red)" />
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: `${avatarFaceCoords.rightEye.top}%`,
-                                                left: `${avatarFaceCoords.rightEye.left}%`,
-                                                width: '12px', height: '12px', background: 'red', opacity: 0.5,
-                                                transform: 'translate(-50%, -50%)', zIndex: 10
-                                            }} title="Right Eye (Red)" />
+                                    {/* SVG wrapper perfectly mimics objectFit="contain" bounds for absolute % mapping.
+                                        This provides a permanent fix for coordinate drifting on window resize/zoom. */}
+                                    <svg viewBox="0 0 1536 1024" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
+                                        <foreignObject x="0" y="0" width="1536" height="1024">
+                                            <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'auto' }}>
+                                                {avatarFaceCoords && (
+                                                    <>
+                                                        <div className="eye-blink" style={{
+                                                            position: 'absolute',
+                                                            top: `${avatarFaceCoords.leftEye.top}%`,
+                                                            left: `${avatarFaceCoords.leftEye.left}%`,
+                                                            width: '4.5%', height: '2.5%', borderRadius: '50%', background: '#ecb8a0', opacity: 0,
+                                                            animation: 'blink-anim 4s infinite',
+                                                            transform: 'translate(-50%, -50%)'
+                                                        }} />
 
-                                            <div style={{
-                                                position: 'absolute',
-                                                top: `${avatarFaceCoords.mouth.top}%`,
-                                                left: `${avatarFaceCoords.mouth.left}%`,
-                                                width: '16px', height: '10px', background: 'blue', opacity: 0.5,
-                                                transform: 'translate(-50%, -50%)', zIndex: 10
-                                            }} title="Mouth (Blue)" />
-                                        </>
-                                    )}
+                                                        <div className="eye-blink" style={{
+                                                            position: 'absolute',
+                                                            top: `${avatarFaceCoords.rightEye.top}%`,
+                                                            left: `${avatarFaceCoords.rightEye.left}%`,
+                                                            width: '4.5%', height: '2.5%', borderRadius: '50%', background: '#ecb8a0', opacity: 0,
+                                                            animation: 'blink-anim 4s 0.05s infinite',
+                                                            transform: 'translate(-50%, -50%)'
+                                                        }} />
+
+                                                        {aiState === 'speaking' && (
+                                                            <div style={{
+                                                                position: 'absolute',
+                                                                top: `${avatarFaceCoords.mouth.top}%`,
+                                                                left: `${avatarFaceCoords.mouth.left}%`,
+                                                                width: '6.5%', height: '2.5%', background: 'rgba(120, 50, 50, 0.4)',
+                                                                borderRadius: '40% 40% 60% 60%',
+                                                                animation: 'mouth-talk-advanced 0.35s infinite alternate ease-in-out',
+                                                                transformOrigin: 'top center',
+                                                                transform: 'translate(-50%, -50%)'
+                                                            }} />
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </foreignObject>
+                                    </svg>
 
                                     {/* Speaking indicator rings */}
                                     {aiState === 'speaking' && (
-                                        <>
-                                            <div style={{ position: 'absolute', inset: '0px', border: '3px solid rgba(118,75,162,0.4)', animation: 'sonar 2s infinite' }} />
-                                        </>
+                                        <div style={{ position: 'absolute', inset: '0px', border: '3px solid rgba(118,75,162,0.4)', animation: 'sonar 2s infinite', pointerEvents: 'none' }} />
                                     )}
                                 </div>
 
