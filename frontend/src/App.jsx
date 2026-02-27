@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom';
-import { Sparkles, MessageSquare, Calendar, Activity, Phone } from 'lucide-react';
+import { Sparkles, MessageSquare, Calendar, Activity, Phone, Video } from 'lucide-react';
 import ChatPage from './pages/ChatPage';
 import DashboardPage from './pages/DashboardPage';
 import BookingsPage from './pages/BookingsPage';
-import CallsPage from './pages/CallsPage';
+import VoiceCallPage from './pages/VoiceCallPage';
+import VideoCallPage from './pages/VideoCallPage';
 
 function Sidebar() {
     return (
@@ -25,8 +26,11 @@ function Sidebar() {
                 <NavLink to="/appointments" className={({ isActive }) => `btn btn-ghost ${isActive ? 'active' : ''}`} style={{ justifyContent: 'flex-start', padding: '12px 16px' }}>
                     <Calendar size={20} /> Appointments
                 </NavLink>
-                <NavLink to="/calls" className={({ isActive }) => `btn btn-ghost ${isActive ? 'active' : ''}`} style={{ justifyContent: 'flex-start', padding: '12px 16px' }}>
-                    <Phone size={20} /> Voice / Video
+                <NavLink to="/voice-call" className={({ isActive }) => `btn btn-ghost ${isActive ? 'active' : ''}`} style={{ justifyContent: 'flex-start', padding: '12px 16px' }}>
+                    <Phone size={20} /> Voice Call
+                </NavLink>
+                <NavLink to="/video-call" className={({ isActive }) => `btn btn-ghost ${isActive ? 'active' : ''}`} style={{ justifyContent: 'flex-start', padding: '12px 16px' }}>
+                    <Video size={20} /> Video Call
                 </NavLink>
             </nav>
 
@@ -54,7 +58,8 @@ function App() {
                         <Route path="/" element={<DashboardPage />} />
                         <Route path="/chat" element={<ChatPage />} />
                         <Route path="/appointments" element={<BookingsPage />} />
-                        <Route path="/calls" element={<CallsPage />} />
+                        <Route path="/voice-call" element={<VoiceCallPage />} />
+                        <Route path="/video-call" element={<VideoCallPage />} />
                     </Routes>
                 </main>
             </div>
