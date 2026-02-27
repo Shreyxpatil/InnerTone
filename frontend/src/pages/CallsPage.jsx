@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, Suspense } from 'react';
 import { Phone, Video, Mic, MicOff, VideoOff, X, User, Sparkles, Radio, Timer, Star } from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
+import { Environment, ContactShadows } from '@react-three/drei';
+import { Avatar3D } from '../components/Avatar3D';
 
 const CallsPage = () => {
     const [mode, setMode] = useState('ai'); // 'ai' or 'p2p'
@@ -14,7 +17,7 @@ const CallsPage = () => {
     // WebRTC & Session State
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
-    const [sessionId, setSessionId] = useState('room-' + Math.floor(Math.random() * 1000));
+    const [sessionId] = useState('room-' + Math.floor(Math.random() * 1000));
     const ws = useRef(null);
     const pc = useRef(null);
     const localStream = useRef(null);
@@ -30,14 +33,8 @@ const CallsPage = () => {
     const [aiState, setAiState] = useState('idle'); // 'speaking', 'listening', 'thinking', 'idle'
     const aiWs = useRef(null);
 
-    // Static layout coordinates for the new consultant-avatar2.png image
-    // These coordinates map to the pupils and the center of the lips.
-    const [avatarFaceCoords, setAvatarFaceCoords] = useState({
-        leftEye: { left: 43.0, top: 22.2 },
-        rightEye: { left: 51.0, top: 22.2 },
-        mouth: { left: 46.50, top: 33.0 }
-    });
-    const avatarImageRef = useRef(null);
+    // Remove old avatar static coords, we now use 3D
+
 
     // Feedback Modal State
     const [showFeedback, setShowFeedback] = useState(false);
@@ -531,69 +528,21 @@ const CallsPage = () => {
                                     boxShadow: aiState === 'speaking' ? 'inset 0 0 60px rgba(118,75,162,0.6)' : 'none',
                                     transition: 'box-shadow 0.5s ease',
                                 }}>
-                                    {/* Un-cropped full pane image */}
-                                    <img
-                                        ref={avatarImageRef}
-                                        src="/consultant-avatar2.png"
-                                        alt="Dr. Ananya Sharma"
-                                        style={{ display: 'block', width: '100%', height: '100%', objectFit: 'contain' }}
-                                    />
-
-                                    {/* SVG wrapper perfectly mimics objectFit="contain" bounds for absolute % mapping.
-                                        This provides a permanent fix for coordinate drifting on window resize/zoom. */}
-                                    <svg viewBox="0 0 1536 1024" preserveAspectRatio="xMidYMid meet" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 10 }}>
-                                        <foreignObject x="0" y="0" width="1536" height="1024">
-                                            <div style={{ position: 'relative', width: '100%', height: '100%', pointerEvents: 'auto' }}>
-                                                {avatarFaceCoords && (
-                                                    <>
-                                                        <div className="eye-blink" style={{
-                                                            position: 'absolute',
-                                                            top: `${avatarFaceCoords.leftEye.top}%`,
-                                                            left: `${avatarFaceCoords.leftEye.left}%`,
-                                                            width: '4.5%', height: '2.5%',
-                                                            borderRadius: '50% 50% 20% 20%',
-                                                            background: 'linear-gradient(to bottom, #bd856c, #a06e5a)',
-                                                            borderBottom: '2px solid #2a1914',
-                                                            boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.3)',
-                                                            opacity: 0,
-                                                            animation: 'blink-anim 4s infinite',
-                                                            transform: 'translate(-50%, -50%)', zIndex: 10
-                                                        }} />
-
-                                                        <div className="eye-blink" style={{
-                                                            position: 'absolute',
-                                                            top: `${avatarFaceCoords.rightEye.top}%`,
-                                                            left: `${avatarFaceCoords.rightEye.left}%`,
-                                                            width: '4.5%', height: '2.5%',
-                                                            borderRadius: '50% 50% 20% 20%',
-                                                            background: 'linear-gradient(to bottom, #bd856c, #a06e5a)',
-                                                            borderBottom: '2px solid #2a1914',
-                                                            boxShadow: 'inset 0 -2px 4px rgba(0,0,0,0.3)',
-                                                            opacity: 0,
-                                                            animation: 'blink-anim 4s 0.05s infinite',
-                                                            transform: 'translate(-50%, -50%)', zIndex: 10
-                                                        }} />
-
-                                                        {aiState === 'speaking' && (
-                                                            <div style={{
-                                                                position: 'absolute',
-                                                                top: `${avatarFaceCoords.mouth.top}%`,
-                                                                left: `${avatarFaceCoords.mouth.left}%`,
-                                                                width: '6.5%', height: '2.5%',
-                                                                background: '#2b1013', /* Dark inner mouth */
-                                                                borderTop: '2px solid rgba(232, 224, 224, 0.5)', /* Hint of upper teeth */
-                                                                boxShadow: 'inset 0 4px 6px rgba(0,0,0,0.7)',
-                                                                borderRadius: '40% 40% 60% 60%',
-                                                                animation: 'mouth-talk-advanced 0.35s infinite alternate ease-in-out',
-                                                                transformOrigin: 'top center',
-                                                                transform: 'translate(-50%, -50%)', zIndex: 10
-                                                            }} />
-                                                        )}
-                                                    </>
-                                                )}
-                                            </div>
-                                        </foreignObject>
-                                    </svg>
+                                    {/* Background Image */}
+                                    <div style={{ position: 'absolute', inset: 0, zIndex: 1 }}>
+                                        <img src="/vc_bg.png" alt="background" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    </div>
+                                    {/* 3D WebGL Avatar Canvas */}
+                                    <div style={{ position: 'absolute', inset: 0, zIndex: 10 }}>
+                                        <Canvas camera={{ position: [0, 0.55, 2.2], fov: 28 }} gl={{ alpha: true }} style={{ background: 'transparent' }}>
+                                            <ambientLight intensity={1.8} />
+                                            <directionalLight position={[2, 5, 5]} intensity={2} />
+                                            <directionalLight position={[-2, 3, 3]} intensity={0.8} />
+                                            <Suspense fallback={null}>
+                                                <Avatar3D aiState={aiState} />
+                                            </Suspense>
+                                        </Canvas>
+                                    </div>
 
                                     {/* Speaking indicator rings */}
                                     {aiState === 'speaking' && (
