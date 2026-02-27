@@ -18,7 +18,7 @@ export function Avatar3D({ aiState }) {
     const scene = useMemo(() => SkeletonUtils.clone(originalScene), [originalScene]);
     const { nodes } = useGraph(scene);
 
-    const headMeshRef = useRef(null);
+    const headMeshesRef = useRef([]);
     const bonesRef = useRef({});
     const defaultQuats = useRef({});
 
@@ -29,12 +29,13 @@ export function Avatar3D({ aiState }) {
     useEffect(() => {
         const bones = {};
         const quats = {};
+        const headMeshes = [];
 
         // Use the cloned nodes directly instead of traversing the whole scene
         // to guarantee we are mutating the unique instance, not the GLTF cache.
         Object.values(nodes).forEach((child) => {
-            if (child.isMesh && child.morphTargetDictionary && !headMeshRef.current) {
-                headMeshRef.current = child;
+            if (child.isMesh && child.morphTargetDictionary) {
+                headMeshes.push(child);
             }
             if (child.isBone) {
                 const name = child.name;
@@ -48,6 +49,7 @@ export function Avatar3D({ aiState }) {
             }
         });
 
+        headMeshesRef.current = headMeshes;
         bonesRef.current = bones;
         defaultQuats.current = quats;
     }, [nodes]);
@@ -56,7 +58,7 @@ export function Avatar3D({ aiState }) {
     const [, forceRender] = React.useState(0);
 
     useFrame((state) => {
-        const head = headMeshRef.current;
+        const headMeshes = headMeshesRef.current;
         const bones = bonesRef.current;
         const time = state.clock.elapsedTime;
 
@@ -68,36 +70,54 @@ export function Avatar3D({ aiState }) {
         // ============================
         // 1. NATURAL EYE BLINKING
         // ============================
-        if (head?.morphTargetDictionary) {
+        if (headMeshes.length > 0) {
             const blinkCycle = Math.sin(time * 2.5 + Math.sin(time * 0.7) * 2);
             const isBlinking = blinkCycle > 0.97;
             const targetBlink = isBlinking ? 1 : 0;
-            const blinkL = head.morphTargetDictionary['eyeBlinkLeft'];
-            const blinkR = head.morphTargetDictionary['eyeBlinkRight'];
-            if (blinkL !== undefined) head.morphTargetInfluences[blinkL] += (targetBlink - head.morphTargetInfluences[blinkL]) * 0.35;
-            if (blinkR !== undefined) head.morphTargetInfluences[blinkR] += (targetBlink - head.morphTargetInfluences[blinkR]) * 0.35;
+            
+            headMeshes.forEach(mesh => {
+                const blinkL = mesh.morphTargetDictionary['eyeBlinkLeft'];
+                const blinkR = mesh.morphTargetDictionary['eyeBlinkRight'];
+                if (blinkL !== undefined) mesh.morphTargetInfluences[blinkL] += (targetBlink - mesh.morphTargetInfluences[blinkL]) * 0.35;
+                if (blinkR !== undefined) mesh.morphTargetInfluences[blinkR] += (targetBlink - mesh.morphTargetInfluences[blinkR]) * 0.35;
+            });
         }
 
         // ============================
         // 2. MULTI-VISEME LIP SYNC
         // ============================
-        if (head?.morphTargetDictionary && aiState === 'speaking') {
-            const vs = visemeState.current;
-            if (time > vs.nextChangeTime) {
-                vs.targetViseme = Math.floor(Math.random() * (VISEME_NAMES.length - 1));
-                vs.nextChangeTime = time + 0.07 + Math.random() * 0.06;
-            }
-            for (let i = 0; i < VISEME_NAMES.length; i++) {
-                const idx = head.morphTargetDictionary[VISEME_NAMES[i]];
-                if (idx !== undefined) {
-                    const target = (i === vs.targetViseme) ? (0.4 + Math.random() * 0.4) : 0;
-                    head.morphTargetInfluences[idx] += (target - head.morphTargetInfluences[idx]) * 0.3;
+        if (headMeshes.length > 0) {
+            const isTtsSpeaking = window.speechSynthesis && window.speechSynthesis.speaking;
+            if (aiState === 'speaking' || isTtsSpeaking) {
+                const vs = visemeState.current;
+                if (time > vs.nextChangeTime) {
+                    vs.targetViseme = Math.floor(Math.random() * (VISEME_NAMES.length - 1));
+                    vs.nextChangeTime = time + 0.07 + Math.random() * 0.06;
                 }
-            }
-            // jaw
-            const jawIdx = head.morphTargetDictionary['jawOpen'];
-            if (jawIdx !== undefined) {
-                head.morphTargetInfluences[jawIdx] += ((0.1 + Math.abs(Math.sin(time * 12)) * 0.25) - head.morphTargetInfluences[jawIdx]) * 0.3;
+                headMeshes.forEach(mesh => {
+                    for (let i = 0; i < VISEME_NAMES.length; i++) {
+                        const idx = mesh.morphTargetDictionary[VISEME_NAMES[i]];
+                        if (idx !== undefined) {
+                            const target = (i === vs.targetViseme) ? (0.4 + Math.random() * 0.4) : 0;
+                            mesh.morphTargetInfluences[idx] += (target - mesh.morphTargetInfluences[idx]) * 0.3;
+                        }
+                    }
+                    // jaw
+                    const jawIdx = mesh.morphTargetDictionary['jawOpen'];
+                    if (jawIdx !== undefined) {
+                        mesh.morphTargetInfluences[jawIdx] += ((0.1 + Math.abs(Math.sin(time * 12)) * 0.25) - mesh.morphTargetInfluences[jawIdx]) * 0.3;
+                    }
+                });
+            } else {
+                // Smoothly close mouth when not speaking
+                headMeshes.forEach(mesh => {
+                    for (let i = 0; i < VISEME_NAMES.length; i++) {
+                        const idx = mesh.morphTargetDictionary[VISEME_NAMES[i]];
+                        if (idx !== undefined) mesh.morphTargetInfluences[idx] *= 0.8;
+                    }
+                    const jawIdx = mesh.morphTargetDictionary['jawOpen'];
+                    if (jawIdx !== undefined) mesh.morphTargetInfluences[jawIdx] *= 0.8;
+                });
             }
         }
 
@@ -106,7 +126,8 @@ export function Avatar3D({ aiState }) {
         // ============================
         if (bones.Head && defaultQuats.current['Head']) {
             const hs = headState.current;
-            if (aiState === 'speaking') {
+            const isTtsSpeaking = window.speechSynthesis && window.speechSynthesis.speaking;
+            if (aiState === 'speaking' || isTtsSpeaking) {
                 if (time > hs.nextChangeTime) {
                     hs.targetYaw = (Math.random() - 0.5) * 0.1;
                     hs.targetPitch = (Math.random() - 0.5) * 0.05;
