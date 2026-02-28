@@ -17,6 +17,8 @@
 
 ## ✨ What is InnerTone?
 
+![InnerTone Demo](demo.webp)
+
 InnerTone is an AI-powered mental wellness consultation platform that provides:
 
 - 💬 **Chat Support** — CBT-style conversational AI therapy
