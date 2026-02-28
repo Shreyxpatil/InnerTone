@@ -19,6 +19,10 @@
 
 ![InnerTone Demo](demo.webp)
 
+> [!NOTE] 
+> ### 🔇 Why is there no sound in the demo?
+> This video is a silent `WebP` animation because GitHub READMEs do not support auto-playing videos with audio tracks. However, the actual application features a **fully voiced, ultra-low latency conversational AI**. We encourage you to run the project locally to experience the voice yourself!
+
 InnerTone is an AI-powered mental wellness consultation platform that provides:
 
 - 💬 **Chat Support** — CBT-style conversational AI therapy
