@@ -17,7 +17,7 @@
 
 ## ✨ What is InnerTone?
 
-![InnerTone Demo](demo.webp)
+![InnerTone Demo](demo.webp?v=2)
 
 > [!NOTE] 
 > ### 🔇 Why is there no sound in the demo?
