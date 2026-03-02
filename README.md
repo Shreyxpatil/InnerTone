@@ -205,11 +205,11 @@ All AI responses follow the CBT-guided format:
 ## 🗺️ Roadmap
 
 - [x] Phase 1: RAG Pipeline from local books
-- [ ] Phase 2: LLM Consultant Engine (Gemini)
-- [ ] Phase 3: Emotion Detection
-- [ ] Phase 4: Safety System
-- [ ] Phase 5: Chat System (FastAPI)
-- [ ] Phase 6: Memory System
+- [x] Phase 2: LLM Consultant Engine (Gemini)
+- [x] Phase 3: Emotion Detection
+- [x] Phase 4: Safety System
+- [x] Phase 5: Chat System (FastAPI)
+- [x] Phase 6: Memory System
 - [x] Phase 7: Voice Call Support
 - [x] Phase 8: Video Call Support
 - [ ] Phase 9: Appointment Booking
