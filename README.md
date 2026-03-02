@@ -212,8 +212,8 @@ All AI responses follow the CBT-guided format:
 - [x] Phase 6: Memory System
 - [x] Phase 7: Voice Call Support
 - [x] Phase 8: Video Call Support
-- [ ] Phase 9: Appointment Booking
-- [ ] Phase 10: Deployment
+- [x] Phase 9: Appointment Booking
+- [] Phase 10: Deployment
 
 ---
 
