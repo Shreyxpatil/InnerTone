@@ -213,7 +213,7 @@ All AI responses follow the CBT-guided format:
 - [x] Phase 7: Voice Call Support
 - [x] Phase 8: Video Call Support
 - [x] Phase 9: Appointment Booking
-- [] Phase 10: Deployment
+- [x] Phase 10: Deployment Ready
 
 ---
 
@@ -226,3 +226,5 @@ This project is licensed under the MIT License.
 <div align="center">
   Built with ❤️ and code by <a href="https://github.com/Shreyxpatil">Shreyxpatil</a>
 </div>
+
+<!-- Streak maintenance -->
