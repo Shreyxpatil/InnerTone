@@ -11,10 +11,182 @@ const VISEME_NAMES = [
     'viseme_DD', 'viseme_kk', 'viseme_nn', 'viseme_RR', 'viseme_sil'
 ];
 
-export function Avatar3D({ aiState }) {
-    const { scene: originalScene } = useGLTF('/models/avatar.glb');
+// ─────────────────────────────────────────────────
+// GESTURE LIBRARY
+// Each gesture defines target bone rotations as
+// { boneName: [x, y, z] Euler offsets from default }
+// ─────────────────────────────────────────────────
+const GESTURES = {
+    // Relaxed folded-arms idle
+    idle: {
+        duration: [3, 5],
+        bones: {
+            LeftArm:      { axis: new THREE.Vector3(0, 0, 1), angle:  1.0 },
+            RightArm:     { axis: new THREE.Vector3(0, 0, 1), angle: -1.0 },
+            LeftForeArm:  [
+                { axis: new THREE.Vector3(0, 0, 1), angle:  1.5 },
+                { axis: new THREE.Vector3(0, 1, 0), angle:  0.5 },
+            ],
+            RightForeArm: [
+                { axis: new THREE.Vector3(0, 0, 1), angle: -1.5 },
+                { axis: new THREE.Vector3(0, 1, 0), angle: -0.5 },
+            ],
+            LeftHand:     { axis: new THREE.Vector3(0, 1, 0), angle:  0.0 },
+            RightHand:    { axis: new THREE.Vector3(0, 1, 0), angle:  0.0 },
+        }
+    },
 
-    // R3F Official way to clone skinned meshes to prevent HMR accumulation
+    // Custom idle for Male proportions (wider shoulders, thicker chest)
+    idle_male: {
+        duration: [3, 5],
+        bones: {
+            LeftShoulder: { axis: new THREE.Vector3(0, 0, 1), angle: -0.1 },
+            RightShoulder:{ axis: new THREE.Vector3(0, 0, 1), angle:  0.1 },
+            LeftArm:  [
+                { axis: new THREE.Vector3(0, 0, 1), angle:  0.90 }, // 0.8 + 0.10
+                { axis: new THREE.Vector3(1, 0, 0), angle:  1.50 },
+            ],
+            RightArm: [
+                { axis: new THREE.Vector3(0, 0, 1), angle: -0.80 }, // -0.8 + 0.00
+                { axis: new THREE.Vector3(1, 0, 0), angle:  1.40 },
+            ],
+            LeftForeArm:  [
+                { axis: new THREE.Vector3(0, 0, 1), angle:  1.25 }, // 1.6 - 0.35
+                { axis: new THREE.Vector3(0, 1, 0), angle:  0.85 }, // 0.2 + 0.65
+            ],
+            RightForeArm: [
+                { axis: new THREE.Vector3(0, 0, 1), angle: -1.60 }, // -1.6 + 0.00
+                { axis: new THREE.Vector3(0, 1, 0), angle: -1.60 }, // -0.2 - 1.40
+            ],
+            LeftHand:     { axis: new THREE.Vector3(0, 1, 0), angle:  0.1 },
+            RightHand:    { axis: new THREE.Vector3(0, 1, 0), angle: -0.1 },
+        }
+    },
+
+    // Raise one hand — like making a point
+    raise_hand: {
+        duration: [2.5, 4],
+        bones: {
+            LeftArm:      { axis: new THREE.Vector3(0, 0, 1), angle:  0.3 },
+            RightArm:     { axis: new THREE.Vector3(1, 0, 0), angle: -0.9 },
+            LeftForeArm:  [
+                { axis: new THREE.Vector3(0, 0, 1), angle:  1.5 },
+                { axis: new THREE.Vector3(0, 1, 0), angle:  0.4 },
+            ],
+            RightForeArm: [
+                { axis: new THREE.Vector3(0, 0, 1), angle: -0.3 },
+                { axis: new THREE.Vector3(1, 0, 0), angle: -0.8 },
+            ],
+            LeftHand:     { axis: new THREE.Vector3(0, 1, 0), angle:  0.1 },
+            RightHand:    { axis: new THREE.Vector3(0, 0, 1), angle: -0.2 }, // slight palm-out
+        }
+    },
+
+    // Open arms — welcoming, empathetic
+    open_arms: {
+        duration: [3, 5],
+        bones: {
+            LeftArm:      { axis: new THREE.Vector3(0, 0, 1), angle:  0.5 },
+            RightArm:     { axis: new THREE.Vector3(0, 0, 1), angle: -0.5 },
+            LeftForeArm:  [
+                { axis: new THREE.Vector3(0, 0, 1), angle:  0.5 },
+                { axis: new THREE.Vector3(1, 0, 0), angle:  0.3 },
+            ],
+            RightForeArm: [
+                { axis: new THREE.Vector3(0, 0, 1), angle: -0.5 },
+                { axis: new THREE.Vector3(1, 0, 0), angle:  0.3 },
+            ],
+            LeftHand:     { axis: new THREE.Vector3(0, 0, 1), angle:  0.3 }, // palms up / open
+            RightHand:    { axis: new THREE.Vector3(0, 0, 1), angle: -0.3 },
+        }
+    },
+
+    // Thinking — forearm raised, hand near chin
+    thinking: {
+        duration: [3, 5.5],
+        bones: {
+            LeftArm:      { axis: new THREE.Vector3(0, 0, 1), angle:  1.0 },
+            RightArm:     { axis: new THREE.Vector3(1, 0, 0), angle: -0.5 },
+            LeftForeArm:  [
+                { axis: new THREE.Vector3(0, 0, 1), angle:  1.5 },
+                { axis: new THREE.Vector3(0, 1, 0), angle:  0.5 },
+            ],
+            RightForeArm: [
+                { axis: new THREE.Vector3(0, 0, 1), angle: -1.0 },
+                { axis: new THREE.Vector3(1, 0, 0), angle: -1.1 },
+            ],
+            LeftHand:     { axis: new THREE.Vector3(0, 1, 0), angle:  0.0 },
+            RightHand:    { axis: new THREE.Vector3(1, 0, 0), angle: -0.4 }, // hand curls slightly
+        }
+    },
+
+    // Shrug — shoulders + palms up
+    shrug: {
+        duration: [1.5, 2.5],
+        bones: {
+            LeftArm:      { axis: new THREE.Vector3(1, 0, 0), angle:  0.4 },
+            RightArm:     { axis: new THREE.Vector3(1, 0, 0), angle:  0.4 },
+            LeftForeArm:  [
+                { axis: new THREE.Vector3(0, 0, 1), angle:  0.7 },
+                { axis: new THREE.Vector3(1, 0, 0), angle:  0.2 },
+            ],
+            RightForeArm: [
+                { axis: new THREE.Vector3(0, 0, 1), angle: -0.7 },
+                { axis: new THREE.Vector3(1, 0, 0), angle:  0.2 },
+            ],
+            LeftHand:     { axis: new THREE.Vector3(0, 0, 1), angle:  0.5 }, // palms up
+            RightHand:    { axis: new THREE.Vector3(0, 0, 1), angle: -0.5 },
+        }
+    },
+
+    // Gentle emphasis — small forearm lift, restrained
+    emphasis: {
+        duration: [2, 3.5],
+        bones: {
+            LeftArm:      { axis: new THREE.Vector3(0, 0, 1), angle:  0.8 },
+            RightArm:     { axis: new THREE.Vector3(1, 0, 0), angle: -0.4 },
+            LeftForeArm:  [
+                { axis: new THREE.Vector3(0, 0, 1), angle:  1.3 },
+                { axis: new THREE.Vector3(0, 1, 0), angle:  0.3 },
+            ],
+            RightForeArm: [
+                { axis: new THREE.Vector3(0, 0, 1), angle: -0.6 },
+                { axis: new THREE.Vector3(1, 0, 0), angle: -0.5 },
+            ],
+            LeftHand:     { axis: new THREE.Vector3(0, 1, 0), angle:  0.1 },
+            RightHand:    { axis: new THREE.Vector3(1, 0, 0), angle: -0.2 },
+        }
+    },
+};
+
+const SPEAKING_GESTURES = ['raise_hand', 'open_arms', 'thinking', 'shrug', 'emphasis'];
+
+// Build a quaternion from an array of {axis, angle} rotations composed together
+function buildGestureQuat(basedOnDefault, rotations) {
+    const q = basedOnDefault.clone();
+    const rots = Array.isArray(rotations) ? rotations : [rotations];
+    rots.forEach(({ axis, angle }) => {
+        const rq = new THREE.Quaternion().setFromAxisAngle(axis, angle);
+        q.premultiply(rq);
+    });
+    return q;
+}
+
+// Avaturn (male) has a different base skeleton than RPM (female).
+// We define base correction offsets that are applied on top of the default pose.
+const BASE_CORRECTIONS = {
+    female: {}, // RPM is our baseline, no correction needed
+    male: {
+        Head: { axis: new THREE.Vector3(0.3, 0, 0), angle: -0.80 }, // Tilt head up more robustly
+    }
+};
+
+// ─────────────────────────────────────────────────
+
+export function Avatar3D({ aiState, gender = 'female' }) {
+    const modelPath = gender === 'male' ? '/models/male.glb' : '/models/female.glb';
+    const { scene: originalScene } = useGLTF(modelPath);
+
     const scene = useMemo(() => SkeletonUtils.clone(originalScene), [originalScene]);
     const { nodes } = useGraph(scene);
 
@@ -22,19 +194,27 @@ export function Avatar3D({ aiState }) {
     const bonesRef = useRef({});
     const defaultQuats = useRef({});
 
-    // Animation state refs
+    // Lip-sync state
     const visemeState = useRef({ targetViseme: 0, nextChangeTime: 0 });
+    // Head movement state
     const headState = useRef({ yaw: 0, pitch: 0, targetYaw: 0, targetPitch: 0, nextChangeTime: 0 });
+    // Current interpolated bone quats (for smooth lerp between gestures)
+    const currentQuats = useRef({});
+    // Gesture sequencer state
+    const gestureState = useRef({
+        name: 'idle',
+        targetQuats: {},
+        nextChangeTime: 0,
+    });
 
     useEffect(() => {
         const bones = {};
         const quats = {};
         const headMeshes = [];
 
-        // Use the cloned nodes directly instead of traversing the whole scene
-        // to guarantee we are mutating the unique instance, not the GLTF cache.
         Object.values(nodes).forEach((child) => {
             if (child.isMesh && child.morphTargetDictionary) {
+                console.log(`[Avatar3D] Found mesh with morph targets: ${child.name}`, Object.keys(child.morphTargetDictionary));
                 headMeshes.push(child);
             }
             if (child.isBone) {
@@ -42,7 +222,8 @@ export function Avatar3D({ aiState }) {
                 if (['LeftArm', 'RightArm', 'LeftForeArm', 'RightForeArm',
                     'LeftHand', 'RightHand', 'Head', 'Neck',
                     'LeftShoulder', 'RightShoulder',
-                    'Spine', 'Spine1', 'Spine2'].includes(name)) {
+                    'Spine', 'Spine1', 'Spine2'].includes(name) || name.toLowerCase().includes('jaw') || name.toLowerCase().includes('lip')) {
+                    if (name.toLowerCase().includes('jaw') || name.toLowerCase().includes('lip')) console.log('[Avatar3D] Found mouth bone:', name);
                     bones[name] = child;
                     quats[name] = child.quaternion.clone();
                 }
@@ -52,29 +233,111 @@ export function Avatar3D({ aiState }) {
         headMeshesRef.current = headMeshes;
         bonesRef.current = bones;
         defaultQuats.current = quats;
-    }, [nodes]);
 
-    // Debug UI state
-    const [, forceRender] = React.useState(0);
+        // Apply base skeleton correction based on gender
+        const correction = BASE_CORRECTIONS[gender];
+        Object.keys(quats).forEach(boneName => {
+            if (correction[boneName] && quats[boneName]) {
+                const corrQ = new THREE.Quaternion().setFromAxisAngle(correction[boneName].axis, correction[boneName].angle);
+                quats[boneName].premultiply(corrQ);
+            }
+        });
+
+        // Seed current quats with idle defaults based on the *corrected* defaults
+        const baseIdleName = gender === 'male' ? 'idle_male' : 'idle';
+        const idleGesture = GESTURES[baseIdleName];
+        const initQuats = {};
+        Object.entries(idleGesture.bones).forEach(([boneName, rotations]) => {
+            const def = quats[boneName];
+            if (def) {
+                initQuats[boneName] = buildGestureQuat(def, rotations);
+            }
+        });
+        currentQuats.current = initQuats;
+        gestureState.current.targetQuats = initQuats;
+        gestureState.current.name = baseIdleName;
+    }, [nodes, gender]);
 
     useFrame((state) => {
         const headMeshes = headMeshesRef.current;
         const bones = bonesRef.current;
+        const defs = defaultQuats.current;
         const time = state.clock.elapsedTime;
 
-        // Apply folded arms pose every frame based on debug values
-        if (bones.LeftArm) {
-            applyFoldedArmsPose(bones, defaultQuats.current);
+        const isTtsSpeaking = window.speechSynthesis && window.speechSynthesis.speaking;
+        const isSpeaking = aiState === 'speaking' || isTtsSpeaking;
+
+        // ============================
+        // 1. GESTURE SEQUENCER
+        // ============================
+        const gs = gestureState.current;
+
+        if (time > gs.nextChangeTime) {
+            let nextName;
+            if (isSpeaking && gender !== 'male') {
+                // Pick a random speaking gesture that isn't the current one
+                const pool = SPEAKING_GESTURES.filter(g => g !== gs.name);
+                nextName = pool[Math.floor(Math.random() * pool.length)];
+            } else {
+                nextName = gender === 'male' ? 'idle_male' : 'idle';
+            }
+
+            const gesture = GESTURES[nextName];
+            const newTargets = {};
+            Object.entries(gesture.bones).forEach(([boneName, rotations]) => {
+                const def = defs[boneName];
+                if (def) {
+                    newTargets[boneName] = buildGestureQuat(def, rotations);
+                }
+            });
+
+            gs.name = nextName;
+            gs.targetQuats = newTargets;
+            const [minD, maxD] = gesture.duration;
+            gs.nextChangeTime = time + minD + Math.random() * (maxD - minD);
+        }
+
+        // Lerp currentQuats toward targetQuats
+        const lerpSpeed = 0.03; // slow smooth transition
+        const cur = currentQuats.current;
+        Object.keys(gs.targetQuats).forEach((boneName) => {
+            if (!cur[boneName]) cur[boneName] = gs.targetQuats[boneName].clone();
+            cur[boneName].slerp(gs.targetQuats[boneName], lerpSpeed);
+        });
+
+        // Apply lerped quats to bones
+        Object.keys(cur).forEach((boneName) => {
+            if (bones[boneName]) {
+                bones[boneName].quaternion.copy(cur[boneName]);
+            }
+        });
+
+        // ============================
+        // 2. HAND MICRO-MOVEMENTS
+        // Layered on top of gesture — subtle wrist oscillation
+        // ============================
+        if (bones.LeftHand) {
+            const amplitude = isSpeaking ? 0.06 : 0.025;
+            // Different freq per hand so they feel independent
+            const leftWave = Math.sin(time * 1.3) * amplitude;
+            const rotL = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), leftWave);
+            bones.LeftHand.quaternion.multiply(rotL);
+        }
+        if (bones.RightHand) {
+            const amplitude = isSpeaking ? 0.06 : 0.025;
+            const rightWave = Math.sin(time * 1.7 + 1.2) * amplitude; // phase-offset
+            const rotR = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), rightWave);
+            bones.RightHand.quaternion.multiply(rotR);
         }
 
         // ============================
-        // 1. NATURAL EYE BLINKING
+        // 3. NATURAL EYE BLINKING
         // ============================
         if (headMeshes.length > 0) {
             const blinkCycle = Math.sin(time * 2.5 + Math.sin(time * 0.7) * 2);
             const isBlinking = blinkCycle > 0.97;
             const targetBlink = isBlinking ? 1 : 0;
-            
+
             headMeshes.forEach(mesh => {
                 const blinkL = mesh.morphTargetDictionary['eyeBlinkLeft'];
                 const blinkR = mesh.morphTargetDictionary['eyeBlinkRight'];
@@ -84,11 +347,10 @@ export function Avatar3D({ aiState }) {
         }
 
         // ============================
-        // 2. MULTI-VISEME LIP SYNC
+        // 4. MULTI-VISEME LIP SYNC
         // ============================
         if (headMeshes.length > 0) {
-            const isTtsSpeaking = window.speechSynthesis && window.speechSynthesis.speaking;
-            if (aiState === 'speaking' || isTtsSpeaking) {
+            if (isSpeaking) {
                 const vs = visemeState.current;
                 if (time > vs.nextChangeTime) {
                     vs.targetViseme = Math.floor(Math.random() * (VISEME_NAMES.length - 1));
@@ -98,18 +360,19 @@ export function Avatar3D({ aiState }) {
                     for (let i = 0; i < VISEME_NAMES.length; i++) {
                         const idx = mesh.morphTargetDictionary[VISEME_NAMES[i]];
                         if (idx !== undefined) {
-                            const target = (i === vs.targetViseme) ? (0.4 + Math.random() * 0.4) : 0;
+                            // Exaggerate visemes slightly more for male so they show through the beard
+                            const multiplier = gender === 'male' ? 1.5 : 1.0;
+                            const target = (i === vs.targetViseme) ? ((0.4 + Math.random() * 0.4) * multiplier) : 0;
                             mesh.morphTargetInfluences[idx] += (target - mesh.morphTargetInfluences[idx]) * 0.3;
                         }
                     }
-                    // jaw
                     const jawIdx = mesh.morphTargetDictionary['jawOpen'];
                     if (jawIdx !== undefined) {
-                        mesh.morphTargetInfluences[jawIdx] += ((0.1 + Math.abs(Math.sin(time * 12)) * 0.25) - mesh.morphTargetInfluences[jawIdx]) * 0.3;
+                        const jawMult = gender === 'male' ? 2.0 : 1.0;
+                        mesh.morphTargetInfluences[jawIdx] += (((0.1 + Math.abs(Math.sin(time * 12)) * 0.25) * jawMult) - mesh.morphTargetInfluences[jawIdx]) * 0.3;
                     }
                 });
             } else {
-                // Smoothly close mouth when not speaking
                 headMeshes.forEach(mesh => {
                     for (let i = 0; i < VISEME_NAMES.length; i++) {
                         const idx = mesh.morphTargetDictionary[VISEME_NAMES[i]];
@@ -122,15 +385,15 @@ export function Avatar3D({ aiState }) {
         }
 
         // ============================
-        // 3. HEAD MICRO-MOVEMENTS
+        // 5. HEAD MICRO-MOVEMENTS
         // ============================
-        if (bones.Head && defaultQuats.current['Head']) {
+        if (bones.Head && defs['Head']) {
             const hs = headState.current;
-            const isTtsSpeaking = window.speechSynthesis && window.speechSynthesis.speaking;
-            if (aiState === 'speaking' || isTtsSpeaking) {
+            if (isSpeaking) {
                 if (time > hs.nextChangeTime) {
-                    hs.targetYaw = (Math.random() - 0.5) * 0.1;
-                    hs.targetPitch = (Math.random() - 0.5) * 0.05;
+                    const nodMult = gender === 'male' ? 1.5 : 1.0; // Extra bobbing effect for male talking
+                    hs.targetYaw = (Math.random() - 0.5) * 0.12 * nodMult;
+                    hs.targetPitch = (Math.random() - 0.5) * 0.07 * nodMult;
                     hs.nextChangeTime = time + 0.5 + Math.random() * 1.5;
                 }
             } else if (aiState === 'listening') {
@@ -144,11 +407,11 @@ export function Avatar3D({ aiState }) {
             hs.pitch += (hs.targetPitch - hs.pitch) * 0.05;
 
             const headExtra = new THREE.Quaternion().setFromEuler(new THREE.Euler(hs.pitch, hs.yaw, 0));
-            bones.Head.quaternion.copy(defaultQuats.current['Head']).premultiply(headExtra);
+            bones.Head.quaternion.copy(defs['Head']).premultiply(headExtra);
         }
 
         // ============================
-        // 4. SUBTLE BREATHING
+        // 6. SUBTLE BREATHING
         // ============================
         if (bones.Spine2) {
             const breathScale = 1 + Math.sin(time * 1.8) * 0.003;
@@ -157,70 +420,11 @@ export function Avatar3D({ aiState }) {
     });
 
     return (
-        <group dispose={null} position={[0, -1.7, 0]}>
-            <primitive object={scene} scale={1.2} />
+        <group dispose={null} position={[0, -2.1, 0]}>
+            <primitive object={scene} scale={1.3} />
         </group>
     );
 }
 
-function applyFoldedArmsPose(bones, defaultQuats) {
-    // Exact values tuned by user via debug UI
-    const d = {
-        uaDown: 1,
-        uaForward: 0.2,
-        faBendX: 0,
-        faBendY: 0.3,
-        faBendZ: 1.5,
-        faCrossX: -0.,
-        faCrossY: 0.5,
-        faCrossZ: 0
-    };
-
-    // LEFT ARM
-    if (bones.LeftArm && defaultQuats['LeftArm']) {
-        const q = defaultQuats['LeftArm'].clone();
-        const down = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), d.uaDown);
-        const forward = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), d.uaForward);
-        q.premultiply(down).premultiply(forward);
-        bones.LeftArm.quaternion.copy(q);
-    }
-
-    // RIGHT ARM
-    if (bones.RightArm && defaultQuats['RightArm']) {
-        const q = defaultQuats['RightArm'].clone();
-        const down = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -d.uaDown);
-        const forward = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), d.uaForward);
-        q.premultiply(down).premultiply(forward);
-        bones.RightArm.quaternion.copy(q);
-    }
-
-    // LEFT FOREARM
-    if (bones.LeftForeArm && defaultQuats['LeftForeArm']) {
-        const q = defaultQuats['LeftForeArm'].clone();
-        const bx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), d.faBendX);
-        const by = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), d.faBendY);
-        const bz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), d.faBendZ);
-        const cx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), d.faCrossX);
-        const cy = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), d.faCrossY);
-        const cz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), d.faCrossZ);
-        q.multiply(bx).multiply(by).multiply(bz).multiply(cx).multiply(cy).multiply(cz);
-        bones.LeftForeArm.quaternion.copy(q);
-    }
-
-    // RIGHT FOREARM
-    if (bones.RightForeArm && defaultQuats['RightForeArm']) {
-        const q = defaultQuats['RightForeArm'].clone();
-        const bx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -d.faBendX);
-        const by = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -d.faBendY);
-        const bz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -d.faBendZ);
-        const cx = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -d.faCrossX);
-        const cy = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -d.faCrossY);
-        const cz = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), -d.faCrossZ);
-        q.multiply(bx).multiply(by).multiply(bz).multiply(cx).multiply(cy).multiply(cz);
-        bones.RightForeArm.quaternion.copy(q);
-    }
-}
-
-useGLTF.preload('/models/avatar.glb');
-
-
+useGLTF.preload('/models/female.glb');
+useGLTF.preload('/models/male.glb');

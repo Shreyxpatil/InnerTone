@@ -4,7 +4,7 @@ import { Phone, Mic, MicOff, X, Sparkles, Radio, Timer, Star } from 'lucide-reac
 const VoiceCallPage = () => {
     const [status, setStatus] = useState('Idle');
     const [isMuted, setIsMuted] = useState(false);
-
+    const [gender, setGender] = useState('male');
     // Timer State
     const [duration, setDuration] = useState(0);
     const timerRef = useRef(null);
@@ -89,14 +89,19 @@ const VoiceCallPage = () => {
         }, 5000);
         const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
         const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Female')) || voices[0];
+        let preferredVoice;
+        if (gender === 'male') {
+            preferredVoice = voices.find(v => v.name.includes('Google UK English Male') || (v.name.includes('Male') && v.lang.startsWith('en'))) || voices.find(v => v.name.includes('Google US English')) || voices[0];
+        } else {
+            preferredVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Female')) || voices[0];
+        }
         let index = 0;
         const speakNext = () => {
             if (index >= sentences.length) { clearInterval(ttsResumeInterval.current); return; }
             const sentence = sentences[index].trim();
             if (!sentence) { index++; speakNext(); return; }
             const utterance = new SpeechSynthesisUtterance(sentence);
-            utterance.rate = 0.95; utterance.pitch = 1.1;
+            utterance.rate = 0.95; utterance.pitch = gender === 'male' ? 0.85 : 1.1;
             if (preferredVoice) utterance.voice = preferredVoice;
             utterance.onend = () => { index++; speakNext(); };
             utterance.onerror = () => { index++; speakNext(); };
@@ -253,6 +258,37 @@ const VoiceCallPage = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Gender Toggle */}
+                {status === 'Idle' && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Consultant:</span>
+                        <div style={{
+                            display: 'flex', borderRadius: 'var(--radius-full)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            overflow: 'hidden', background: 'rgba(255,255,255,0.05)'
+                        }}>
+                            <button
+                                onClick={() => setGender('female')}
+                                style={{
+                                    padding: '6px 16px', fontSize: '0.85rem', border: 'none', cursor: 'pointer',
+                                    background: gender === 'female' ? 'var(--accent-purple)' : 'transparent',
+                                    color: gender === 'female' ? 'white' : 'var(--text-secondary)',
+                                    transition: 'all 0.2s ease',
+                                }}
+                            >👩 Female</button>
+                            <button
+                                onClick={() => setGender('male')}
+                                style={{
+                                    padding: '6px 16px', fontSize: '0.85rem', border: 'none', cursor: 'pointer',
+                                    background: gender === 'male' ? 'var(--accent-blue)' : 'transparent',
+                                    color: gender === 'male' ? 'white' : 'var(--text-secondary)',
+                                    transition: 'all 0.2s ease',
+                                }}
+                            >👨 Male</button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Voice Session Area */}
@@ -288,6 +324,9 @@ const VoiceCallPage = () => {
                             aiState === 'thinking' ? 'InnerTone is Thinking...' :
                                 aiState === 'listening' ? 'InnerTone is Listening...' : 'Start a Voice Call'}
                     </h3>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                        {status !== 'Idle' ? (gender === 'male' ? 'Dr. Arjun Mehta' : 'Dr. Ananya Sharma') : ''}
+                    </p>
                     <div className="glass-panel" style={{
                         padding: '20px', minHeight: '100px', color: 'var(--text-secondary)',
                         marginBottom: '24px', fontStyle: 'italic', fontSize: '1rem',

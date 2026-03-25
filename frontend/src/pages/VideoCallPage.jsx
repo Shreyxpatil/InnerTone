@@ -7,7 +7,12 @@ const VideoCallPage = () => {
     const [status, setStatus] = useState('Idle');
     const [isMuted, setIsMuted] = useState(false);
     const [isVideoOff, setIsVideoOff] = useState(false);
-
+    const [gender, setGender] = useState('male');
+    const [poseAdjustments, setPoseAdjustments] = useState({
+        headTilt: -0.4, 
+        lArmZ: 0.8, lArmX: 0.0, lForearmZ: 1.6, lForearmY: 0.2,
+        rArmZ: -0.8, rArmX: 0.0, rForearmZ: -1.6, rForearmY: -0.2
+    });
     // Timer State
     const [duration, setDuration] = useState(0);
     const timerRef = useRef(null);
@@ -95,14 +100,19 @@ const VideoCallPage = () => {
         }, 5000);
         const sentences = text.match(/[^.!?]+[.!?]+/g) || [text];
         const voices = window.speechSynthesis.getVoices();
-        const preferredVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Female')) || voices[0];
+        let preferredVoice;
+        if (gender === 'male') {
+            preferredVoice = voices.find(v => v.name.includes('Google UK English Male') || (v.name.includes('Male') && v.lang.startsWith('en'))) || voices.find(v => v.name.includes('Google US English')) || voices[0];
+        } else {
+            preferredVoice = voices.find(v => v.name.includes('Google US English') || v.name.includes('Female')) || voices[0];
+        }
         let index = 0;
         const speakNext = () => {
             if (index >= sentences.length) { clearInterval(ttsResumeInterval.current); return; }
             const sentence = sentences[index].trim();
             if (!sentence) { index++; speakNext(); return; }
             const utterance = new SpeechSynthesisUtterance(sentence);
-            utterance.rate = 0.95; utterance.pitch = 1.1;
+            utterance.rate = 0.95; utterance.pitch = gender === 'male' ? 0.85 : 1.1;
             if (preferredVoice) utterance.voice = preferredVoice;
             utterance.onend = () => { index++; speakNext(); };
             utterance.onerror = () => { index++; speakNext(); };
@@ -269,6 +279,37 @@ const VideoCallPage = () => {
                         )}
                     </div>
                 </div>
+
+                {/* Gender Toggle */}
+                {status === 'Idle' && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Consultant:</span>
+                        <div style={{
+                            display: 'flex', borderRadius: 'var(--radius-full)',
+                            border: '1px solid rgba(255,255,255,0.15)',
+                            overflow: 'hidden', background: 'rgba(255,255,255,0.05)'
+                        }}>
+                            <button
+                                onClick={() => setGender('female')}
+                                style={{
+                                    padding: '6px 16px', fontSize: '0.85rem', border: 'none', cursor: 'pointer',
+                                    background: gender === 'female' ? 'var(--accent-purple)' : 'transparent',
+                                    color: gender === 'female' ? 'white' : 'var(--text-secondary)',
+                                    transition: 'all 0.2s ease',
+                                }}
+                            >👩 Female</button>
+                            <button
+                                onClick={() => setGender('male')}
+                                style={{
+                                    padding: '6px 16px', fontSize: '0.85rem', border: 'none', cursor: 'pointer',
+                                    background: gender === 'male' ? 'var(--accent-blue)' : 'transparent',
+                                    color: gender === 'male' ? 'white' : 'var(--text-secondary)',
+                                    transition: 'all 0.2s ease',
+                                }}
+                            >👨 Male</button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Split-Screen Video Call Layout */}
@@ -299,20 +340,20 @@ const VideoCallPage = () => {
                                 <directionalLight position={[2, 5, 5]} intensity={2} />
                                 <directionalLight position={[-2, 3, 3]} intensity={0.8} />
                                 <Suspense fallback={null}>
-                                    <Avatar3D aiState={aiState} />
+                                    <Avatar3D aiState={aiState} gender={gender} poseAdjustments={poseAdjustments} />
                                 </Suspense>
                             </Canvas>
                         </div>
 
                         {/* Speaking indicator */}
                         {aiState === 'speaking' && (
-                            <div style={{ position: 'absolute', inset: '0px', border: '3px solid rgba(118,75,162,0.4)', animation: 'sonar 2s infinite', pointerEvents: 'none' }} />
+                            <div style={{ position: 'absolute', inset: '0px', border: `3px solid ${gender === 'male' ? 'rgba(56, 189, 248, 0.4)' : 'rgba(118,75,162,0.4)'}`, animation: 'sonar 2s infinite', pointerEvents: 'none' }} />
                         )}
                     </div>
 
                     {/* Floating Name Badge */}
                     <div style={{ position: 'absolute', bottom: '16px', left: '16px', background: 'rgba(0,0,0,0.6)', padding: '6px 14px', borderRadius: 'var(--radius-sm)', backdropFilter: 'blur(4px)', zIndex: 20 }}>
-                        <h3 style={{ fontSize: '1rem', color: 'white', margin: 0 }}>Dr. Ananya Sharma</h3>
+                        <h3 style={{ fontSize: '1rem', color: 'white', margin: 0 }}>{gender === 'male' ? 'Dr. Arjun Mehta' : 'Dr. Ananya Sharma'}</h3>
                         <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)', margin: 0 }}>
                             {aiState === 'speaking' ? '🔊 Speaking...' : aiState === 'thinking' ? '💭 Thinking...' : '👂 Listening...'}
                         </p>
